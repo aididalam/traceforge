@@ -1,0 +1,6 @@
+[submodule "chain"]
+	path = chain
+	url = https://github.com/aididalam/traceforge-chain.git
+[submodule "contracts"]
+	path = contracts
+	url = https://github.com/aididalam/traceforge-contracts.git
