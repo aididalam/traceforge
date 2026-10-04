@@ -4,3 +4,6 @@
 [submodule "contracts"]
 	path = contracts
 	url = https://github.com/aididalam/traceforge-contracts.git
+[submodule "indexer"]
+	path = indexer
+	url = https://github.com/aididalam/traceforge-indexer.git
