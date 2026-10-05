@@ -275,3 +275,52 @@ Restart the API and run an indexer catch-up.
 Database schema downgrades are not automatic. Never reverse migrations
 without a separately reviewed recovery plan.
 
+
+## 12. Monitoring and alerts
+
+The host monitor checks:
+
+- API /health;
+- API /ready;
+- the existing chain health-check script;
+- indexer block lag and read-model event lag.
+
+The default indexer thresholds are:
+
+    INDEXER_MAX_BLOCK_LAG=30
+    INDEXER_MAX_EVENT_LAG=5
+
+Optional overrides and an alert hook can be stored in:
+
+    /etc/traceforge/monitor.env
+
+Example:
+
+    INDEXER_MAX_BLOCK_LAG=30
+    INDEXER_MAX_EVENT_LAG=5
+    TRACEFORGE_ALERT_HOOK=/usr/local/libexec/traceforge-alert
+
+The alert hook must be executable. It receives one failure summary
+as its first argument. Keep webhook tokens and other credentials
+inside the hook environment or protected files, never in Git.
+
+Install the monitoring units:
+
+    sudo cp ops/systemd/traceforge-monitor.service /etc/systemd/system/
+    sudo cp ops/systemd/traceforge-monitor.timer /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now traceforge-monitor.timer
+
+Verify:
+
+    sudo systemctl start traceforge-monitor.service
+    systemctl status traceforge-monitor.service
+    systemctl list-timers traceforge-monitor.timer
+    journalctl -u traceforge-monitor.service -n 100 --no-pager
+
+The traceforge service user must be able to run the existing chain
+health-check script. On Docker-based hosts, review Docker access
+carefully because Docker control is security-sensitive.
+
+Hosted CI intentionally does not run deployment-readiness checks
+that require live MySQL, Besu, signer configuration, or secrets.

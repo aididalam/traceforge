@@ -1,0 +1,73 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            indexer/package-lock.json
+            contracts/package-lock.json
+
+      - name: Verify submodule integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(git submodule status --recursive)"
+          printf "%s\n" "$status"
+          if printf "%s\n" "$status" | grep -Eq "^[+-U]"; then
+            echo "Submodule checkout mismatch detected." >&2
+            exit 1
+          fi
+
+      - name: Verify API
+        working-directory: api
+        run: |
+          npm ci
+          npm run typecheck
+          npm run verify:production-build
+          npm run verify:provenance-schema
+
+      - name: Verify indexer
+        working-directory: indexer
+        run: |
+          npm ci
+          npm run typecheck
+          npm run verify:production-build
+
+      - name: Verify contracts
+        working-directory: contracts
+        run: |
+          npm ci
+          npm run compile
+          npm test
+
+      - name: Verify chain scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n chain/scripts/*.sh
+
+      - name: Verify operational assets
+        run: |
+          node ops/verify-ops-assets.mjs
+          node ops/verify-monitoring-assets.mjs
