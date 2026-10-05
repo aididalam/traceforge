@@ -1,35 +1,41 @@
 # TraceForge UI architecture
 
-Status: implementation specification for the future v0.30 UI, reviewed on
-2026-10-05. This document creates no application, repository, submodule, or
-deployment. Existing API behavior is identified separately from future work.
+Status: v0.30 public UI architecture, updated on 2026-10-05. Phase 1 uses
+Next.js App Router and TypeScript. Operator and QR workflows below remain
+future work. See [the delivery roadmap](roadmap.md) for completion evidence.
 
 ## Repository and first delivery
 
-The intended root submodule is `ui -> traceforge-ui`, alongside `api`, `chain`,
-`contracts`, and `indexer`. Repository creation and adding `ui` to `.gitmodules`
-require a later task. A future `qr -> traceforge-qr` submodule will handle
-dedicated scanning/label workflows; it is also not created by this milestone.
+The root submodule is `ui -> traceforge-ui`, alongside `api`, `chain`,
+`contracts`, and `indexer`. Its configured origin is
+`https://github.com/aididalam/traceforge-ui.git`. Work is committed locally;
+the remote was unavailable when checked on 2026-10-05, and creating/publishing
+it remains pending under the existing no-GitHub-creation/no-push instruction.
+Until the UI commit and other local submodule commits are published, a fresh
+remote clone cannot reproduce the local root revision. No machine-local URL
+or application source files are committed in place of the gitlink.
+A future `qr -> traceforge-qr` submodule will handle dedicated scanning/label
+workflows; it is not created by Phase 1.
 
 The first UI delivery is the public provenance page. Operator screens, login,
 camera scanning, QR generation, document publication, and write controls are
 future work with their own acceptance checks. Public entity listing/search is
 not available in the current API and must not be built by enumerating IDs.
 
-Recommend React + TypeScript + Vite, React Router in declarative mode, native
-`fetch`, and CSS modules. The initial two-read-endpoint SPA needs a small static
-deployment and no browser blockchain SDK. Keep request/state handling inside
-the API client and page controller rather than scattering it through components.
-Pin compatible dependencies and a supported Node version when scaffolding;
-do not assume dependency versions from this document. Reconsider a framework
-if server rendering or richer operator routing becomes necessary. This is a
-project recommendation based on the [React setup guidance](https://react.dev/learn/build-a-react-app-from-scratch),
-[Vite guide](https://vite.dev/guide/), and [React Router installation](https://reactrouter.com/start/declarative/installation).
+Use Next.js App Router + React + TypeScript, native `fetch`, Zod runtime
+validation and CSS. Versions are pinned in `ui/package.json` and the lockfile;
+CI uses Node 22. This follows the user's Next.js requirement and the framework's
+[installation](https://nextjs.org/docs/app/getting-started/installation) and
+[server/client component](https://nextjs.org/docs/app/getting-started/server-and-client-components)
+boundaries. No browser blockchain SDK is needed.
 
-Suggested future boundaries: `src/api/public-client.ts`, public response types
-and runtime validation, `src/pages/trace/`, shared accessible display components,
-and a separate operator feature tree/client. Public bundles must not import
-operator credentials or signing code.
+`src/app/trace/[tenantId]/[entityId]/page.tsx` produces a dynamic loading shell;
+`src/components/use-trace.ts` owns transient browser request state.
+`src/lib/public-client.ts` reads and validates the public API contract.
+`src/lib/public-gateway.ts` is imported only by the two App Router public GET
+handlers (and unit tests). Shared accessible components live in
+`src/components/`. A future operator feature tree/client stays separate;
+public bundles must not import operator credentials or signing code.
 
 ## Public page and QR contract
 
@@ -242,28 +248,45 @@ Extract shared URL validators/types into a reviewed package later if needed.
 
 ## Environment, proxy and deployment
 
-Proposed UI build configuration (future `.env.example`; values are public):
+UI configuration in `ui/.env.example`:
 
 ```dotenv
-VITE_PUBLIC_API_BASE_URL=
-VITE_PUBLIC_SITE_ORIGIN=https://traceforge.example
+NEXT_PUBLIC_API_BASE_URL=
+NEXT_PUBLIC_SITE_ORIGIN=
+TRACEFORGE_PUBLIC_API_ORIGIN=http://127.0.0.1:3000
 ```
 
-An empty API base uses the page's origin. An explicit base is an approved HTTPS
-origin with no credentials, query, fragment, or path prefix; allow loopback HTTP
-only in local development. Append the existing full API paths once. The site
-origin is the canonical externally accessible QR destination; do not derive it
-from a scanned URL, query parameter, or unchecked proxy header. Fail startup/build
-validation for invalid configuration. All `VITE_*` values are browser-visible,
-so secrets never belong there; see [Vite environment guidance](https://vite.dev/guide/env-and-mode).
+Empty public values use the page's origin. An explicit browser API/site origin
+must be HTTPS with no credentials, query, fragment or path prefix; loopback HTTP
+is permitted in development configuration only. Next configuration validates
+these values before build/start. Append the existing full API paths once. The
+site origin is the future canonical QR destination; do not derive it from a
+scanned URL, query parameter or unchecked proxy header. `NEXT_PUBLIC_*` values
+are embedded in browser builds and require rebuilding to change them; secrets
+never belong there. See [Next environment guidance](https://nextjs.org/docs/app/guides/environment-variables).
 
-For local development, a Vite proxy can forward `/public/` to the local API while
-preserving paths. For deployment, serve built static assets over HTTPS and
-reverse-proxy `/public/` on the same origin to the private API listener. SPA
-fallback applies to UI paths such as `/trace/...`, never to API responses.
-Configure API routing ahead of static fallback. Do not expose authenticated
-`/v1/*` on a consumer-only hostname; future operator access uses its separate
-trusted gateway. No direct public database, signer directory, or RPC exposure.
+`TRACEFORGE_PUBLIC_API_ORIGIN` is a credential-free, server-only origin. It is
+required at production runtime; development defaults to `http://127.0.0.1:3000`.
+HTTPS is required for non-loopback upstreams; HTTP loopback is allowed for a
+private colocated API. UI dev/start uses port 3100 to keep API port 3000 separate.
+
+By default, browser requests go to two same-origin Next GET handlers with the
+exact public API paths. The gateway forwards only fixed public GET requests to
+the configured upstream, with fresh Accept headers, no cookies/Authorization,
+no redirects and a ten-second timeout. It validates the public response
+allowlists again and returns sanitized errors, `Retry-After` for 429, and
+`Cache-Control: no-store`. It never forwards inbound headers or upstream
+Set-Cookie/private error bodies. It has no generic proxy, login, operator,
+document, DB or RPC route. POST to the public handlers returns 405.
+
+Run the Next production Node server behind HTTPS. The `/trace/...` route is
+dynamic and renders only a loading shell on the server; provenance is fetched
+in the browser with no persistent or RSC data cache. Public GET handlers are
+also dynamic and uncached. Do not static-export this application: its gateway
+requires a Node runtime. An edge proxy must pass both UI deep links and public
+GET routes to Next, without HTML fallback for API paths. Future operator access
+uses its separate reviewed session gateway. No public database, signer or RPC
+exposure. See [Next deployment guidance](https://nextjs.org/docs/app/getting-started/deploying).
 
 The current API has no CORS registration; same-origin proxying is the initial
 assumption. A separate API origin needs a future explicit CORS policy or a
@@ -275,11 +298,17 @@ Measure this before public rollout. Multiple API workers also need a reviewed
 shared rate-limit/edge strategy; the current in-process limiter is not a cluster
 quota.
 
-Use reproducible locked builds, immutable hashed static assets, and a short-lived
-HTML shell; do not cache public API responses at the edge. Restrict CSP to the
-needed UI/API origins and avoid third-party scripts on provenance/operator pages.
-Treat UI and API release hashes as a compatible pair, verify HTTPS deep links,
-404/429 forwarding and revocation, and provide static release rollback. Staging
+The Next gateway also means API callers share its IP rate budget today; it does
+not forward X-Forwarded-For or enable API proxy trust. Public deployment must
+address that measured limitation in Phase 7 rather than asserting per-user
+quotas behind the gateway.
+
+Use reproducible locked builds and immutable hashed framework assets; do not
+cache trace pages or public API responses at the edge. HTTPS/CSP configuration
+is a Phase 7 deployment task. There are no third-party scripts or external
+font/image requests in Phase 1. Treat UI and API release hashes as a compatible
+pair, verify deep links, 404/429 forwarding and revocation, and retain prior
+Node builds for rollback. Staging
 must keep broadcast disabled; enabling production operator writes is a later,
 explicit operational step. This specification deploys nothing.
 
@@ -297,11 +326,13 @@ explicit operational step. This specification deploys nothing.
 | Hosting/proxy/supply chain | TLS, CSP, path routing, reviewed proxy trust, dependency lock/audit and secret-free public builds. |
 
 UI tests should use synthetic IDs and HTTP fixtures: no real operator tokens,
-keys, live Besu, signing, or broadcasts. Recommend
-[Vitest](https://vitest.dev/guide/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
-for validation/client/page behavior, and [Playwright](https://playwright.dev/docs/intro)
-for browser deep links, state transitions, accessibility interactions and network
-request assertions. Fixtures should cover nullable labels, closed entities,
+keys, live Besu, signing, or broadcasts. Phase 1 uses
+[Vitest](https://nextjs.org/docs/app/guides/testing/vitest) for validators,
+client and GET gateway behavior, and
+[Playwright](https://nextjs.org/docs/app/guides/testing/playwright) against the
+production Next build for browser deep links, state transitions, axe
+accessibility checks, clipboard/keyboard interactions and network assertions.
+An isolated HTTP fixture server also tests real gateway round trips. Fixtures cover nullable labels, closed entities,
 empty history, event IDs above `2^53`, unsigned-64-bit cursors, changing publication
 visibility, aborts, slow responses, 404/400/429, unavailable API and invalid shapes.
 Assert zero public Authorization headers and zero document/operator/write/RPC

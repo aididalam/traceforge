@@ -10,3 +10,6 @@
 [submodule "api"]
 	path = api
 	url = https://github.com/aididalam/traceforge-api.git
+[submodule "ui"]
+	path = ui
+	url = https://github.com/aididalam/traceforge-ui.git
