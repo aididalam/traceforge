@@ -51,6 +51,7 @@ jobs:
           npm run verify:public-discovery
           npm run verify:public-tracking
           npm run verify:public-presentation
+          npm run verify:public-short-links
           npm run verify:provenance-schema
           npm audit --omit=dev --audit-level=high
 

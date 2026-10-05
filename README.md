@@ -61,10 +61,12 @@ Open `http://127.0.0.1:3100`. The gateway uses the existing public API at
 entities must be explicitly published to appear. UI startup makes no database
 or blockchain changes. See [UI setup and verification](ui/README.md).
 
-The canonical product URL is `/track/<trackingId>` with one globally unique
-public ID. Original tenant/entity links remain compatible. The registry
-migration is prepared and temporarily tested, pending live DB/service
-activation. See [single-ID tracking and activation](docs/public-tracking.md).
+Product links can use `/s/<12-character-code>` for sharing; the full
+`/track/<trackingId>` and original tenant/entity links remain compatible.
+The homepage's single Tracking ID field accepts either code or full ID.
+Registry migrations are prepared and temporarily tested, pending live DB/service
+activation. See [single-ID tracking](docs/public-tracking.md) and
+[short links and activation](docs/public-short-links.md).
 
 The public page shows shared product information, the current business holder,
 and dated supply history. Approved names replace technical IDs in the main view;

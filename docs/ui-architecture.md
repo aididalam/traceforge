@@ -27,7 +27,7 @@ CI uses Node 22. This follows the user's Next.js requirement and the framework's
 [server/client component](https://nextjs.org/docs/app/getting-started/server-and-client-components)
 boundaries. No browser blockchain SDK is needed.
 
-`src/app/track/[trackingId]/page.tsx` and the compatible
+`src/app/s/[shortCode]/page.tsx`, `src/app/track/[trackingId]/page.tsx` and the compatible
 `src/app/trace/[tenantId]/[entityId]/page.tsx` produce dynamic loading shells;
 `src/components/use-trace.ts` owns transient browser request state.
 `src/lib/public-client.ts` reads and validates the public API contract.
@@ -39,17 +39,19 @@ public bundles must not import operator credentials or signing code.
 ## Public page and QR contract
 
 The home page has one Tracking ID input and a submit button. It accepts a
-bytes32 Tracking ID; URL and tenant/entity entry modes are absent. The
-canonical UI route is `/track/:trackingId`. The original
-`/trace/:tenantId/:entityId` remains compatible. All IDs are bytes32 values matching
-`^0x[0-9a-fA-F]{64}$`; normalize to lowercase after validation. Validate route
+12-character short code or a bytes32 Tracking ID; URL and tenant/entity entry
+modes are absent. Shareable short URLs use `/s/:shortCode`; full
+`/track/:trackingId` and original `/trace/:tenantId/:entityId` remain compatible.
+Short codes use `0123456789abcdefghjkmnpqrstvwxyz`; full/internal IDs are bytes32
+values matching `^0x[0-9a-fA-F]{64}$`. Normalize to lowercase after validation. Validate route
 parameters before sending a request. Invalid links get a local invalid-link
 state and no API request. Encode path segments when constructing URLs.
 
-A generated QR payload is exactly a normal HTTPS URL:
+A future QR payload is a normal HTTPS URL, using either full or short form:
 
 ```text
 https://traceforge.example/track/<trackingId>
+https://traceforge.example/s/<12-character-code>
 ```
 
 The hostname above is a reserved example, not an existing deployment. The
@@ -64,11 +66,15 @@ alone remain tenant-scoped. IDs survive unpublication/republication, but every
 lookup still joins publication and current entity state. See
 [registry design and activation](public-tracking.md). Migration 005 is prepared,
 not applied to the live DB under the current temporary-write-only restriction.
+Short codes map to this global ID in a separate stable registry with publication
+checks on every read. Migration 007 is also prepared and not applied live.
+See [short-link identity, API and activation](public-short-links.md).
 
 The public client calls only these endpoints:
 
 ```text
 GET /public/v1/tracking/:trackingId
+GET /public/v1/short-links/:shortCode
 GET /public/v1/tenants/:tenantId/entities/:entityId
 GET /public/v1/tenants/:tenantId/entities/:entityId/history
     ?limit=50&afterEventId=<decimal-string>
@@ -260,8 +266,8 @@ checks supplement keyboard and screen-reader review.
 
 QR generation (future) converts the validated public URL into an image/SVG plus
 printable text; it does not publish the entity or embed API data. QR scanning
-(future) decodes locally, validates HTTPS, an approved origin, exact `/track/`
-path and one Tracking ID (or a compatible two-ID link), rejects
+(future) decodes locally, validates HTTPS, an approved origin and an exact
+`/s/<code>`, `/track/<trackingId>` or compatible two-ID path, and rejects
 credentials/query/fragment/other schemes, and navigates to the
 public page. Treat scans as untrusted input, never as instructions to call an
 arbitrary URL. Provide manual URL/ID entry when camera access is denied.

@@ -20,7 +20,7 @@ the end-user product is complete. The current four validators share one Pi.
 
 | Phase | Deliverable | Completion evidence | Status |
 | --- | --- | --- | --- |
-| 1 | Public web UI foundation (Next.js) | `/track/:trackingId` and compatible `/trace/:tenantId/:entityId`, validated token-free API client, safe timeline/cursors, loading/404/429/unavailable states, mobile/keyboard/accessibility tests, production build and CI gate. | Implemented; live tracking migration/service activation pending |
+| 1 | Public web UI foundation (Next.js) | Short `/s/:shortCode`, full `/track/:trackingId` and compatible `/trace/:tenantId/:entityId`, reviewed product details, named holders, dated supply history, token-free client, safe cursors/errors, mobile/keyboard/accessibility tests, production build and CI gate. | Implemented; live migrations 005–007/service activation pending |
 | 2 | QR generation and scanning | Canonical HTTPS URL payload, printable labels, approved-origin scanner/manual fallback, camera lifecycle and malicious-payload tests; future `qr` component. | Planned |
 | 3 | Operator access and dashboard | Basic account/invitation and organization access, reviewed login/session gateway, tenant/organization/scope enforcement, authenticated read views and safe read-only operation-status API; no browser signing or bundled bearer credentials. | Planned |
 | 4 | Metadata and evidence workflow | Schema validation, canonical hashing, private document storage/import/upload, authorized resolution and retention. Any public document access needs an explicit separate publication policy. | Planned |
@@ -50,7 +50,7 @@ with a fabricated live record.
 ## Phase 1 verification — 2026-10-05
 
 - Locked dependency installation (`npm ci`) succeeded with Node 22.
-- Latest UI checks: typecheck, production Next build, 18 unit tests and 42
+- Latest UI checks: typecheck, production Next build, 22 unit tests and 54
   browser checks passed. Browser projects are desktop Chromium and Pixel 7
   Chromium; the latter is an emulated profile, not a physical-device test.
 - Browser checks include a real Next/public-fixture gateway round trip,
@@ -62,7 +62,7 @@ with a fabricated live record.
 - `npm run audit:production` reported zero vulnerabilities.
 - API offline public discovery/tracking checks, temporary MySQL tracking tests
   and root ops/monitoring asset checks passed. The deployed contract and applied
-  migration 004 are preserved; migrations 005 and 006 are prepared but not applied live.
+  migration 004 are preserved; migrations 005, 006 and 007 are prepared but not applied live.
 - Public product presentation checks passed offline and against temporary
   MySQL fixtures: reviewed product details/business names, all event dates,
   transfer attribution, stale-reference privacy and unchanged live data.
@@ -84,8 +84,8 @@ contract deployment and applied migration 004 are preserved.
 
 ## Single-ID tracking addition — 2026-10-05
 
-The public UI now accepts one Tracking ID and uses `/track/:trackingId` as the
-canonical consumer/QR URL. A separate registry maps it to the on-chain
+The public UI accepts one Tracking ID and supports `/track/:trackingId` as the
+full-ID consumer/QR URL. A separate registry maps it to the on-chain
 tenant/entity pair. Existing links remain compatible; publication gates and
 private-document boundaries are preserved. Migration 005 is prepared and
 verified with temporary MySQL tables; permanent DB changes/service activation
@@ -102,4 +102,16 @@ display fields without publishing complete private documents. Metadata-reference
 changes hide stale display details until reviewed again. See
 [public details, tests and activation](public-product-details.md).
 This is a focused consumer-view improvement; the full operator document/upload
-workflow in phase 4 remains planned. Short-link/Tracking-ID resolution is unchanged.
+workflow in phase 4 remains planned. Global Tracking-ID resolution is preserved.
+
+## Short product links addition — 2026-10-05
+
+Shareable product URLs now use `/s/<12-character-code>` and render the same
+details/history while keeping the short URL. The single Tracking ID field
+accepts short codes and existing full IDs. Stable database aliases are uniquely
+bound to a global ID, retain reservations while unpublished, and resolve only
+published existing products. Copy code/link controls, strict public lookup,
+collision/concurrency checks and desktop/mobile verification are complete.
+Migration 007 was tested with temporary MySQL tables and remains unapplied live.
+See [short-link design and activation](public-short-links.md). QR tools and
+operator dashboard/account workflows remain subsequent phases.

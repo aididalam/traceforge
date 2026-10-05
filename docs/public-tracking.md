@@ -1,13 +1,15 @@
 # Single-ID public tracking
 
-Prepared locally on 2026-10-05. The canonical consumer URL is:
+Prepared locally on 2026-10-05. The full-ID consumer URL is:
 
 ```text
 https://traceforge.example/track/<trackingId>
 ```
 
 `traceforge.example` is a reserved example. The real site origin is deployment
-configuration. The home page accepts only a single Tracking ID. Existing
+configuration. The home page accepts a single Tracking ID, either the full ID
+or a short code. [Short links](public-short-links.md) use `/s/<12-character-code>`
+and map to this same global identity. Existing `/track/` and
 `/trace/:tenantId/:entityId` links continue to work.
 
 ## Identity and visibility
@@ -69,8 +71,8 @@ contract redeployment is needed. These commands are documented, not executed
 against permanent live data in this task. The running user API must use the
 updated code before the new gateway endpoint can resolve IDs.
 
-QR generation/scanning remains Phase 2; its payload should use this canonical
-single-ID URL. Operator dashboard/account workflows remain later work.
+QR generation/scanning remains Phase 2; its payload can use the short or full-ID
+HTTPS URL. Operator dashboard/account workflows remain later work.
 
 ## Verification
 
@@ -85,7 +87,7 @@ single-ID URL. Operator dashboard/account workflows remain later work.
   invalid/unknown IDs, credential omission, revocation, accessibility and legacy
   routes. Fixtures are synthetic; they are not shipped as live product data.
 
-The checks passed locally: 17 unit tests and 38 browser checks (desktop Chromium
+The latest checks passed locally: 22 unit tests and 54 browser checks (desktop Chromium
 and an emulated Pixel 7 Chromium profile), plus the API offline and real-MySQL
 temporary-table checks. Automated axe scans are not a manual screen-reader audit.
 
