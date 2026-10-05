@@ -8,11 +8,9 @@ future work. See [the delivery roadmap](roadmap.md) for completion evidence.
 
 The root submodule is `ui -> traceforge-ui`, alongside `api`, `chain`,
 `contracts`, and `indexer`. Its configured origin is
-`https://github.com/aididalam/traceforge-ui.git`. Work is committed locally;
-the remote was unavailable when checked on 2026-10-05, and creating/publishing
-it remains pending under the existing no-GitHub-creation/no-push instruction.
-Until the UI commit and other local submodule commits are published, a fresh
-remote clone cannot reproduce the local root revision. No machine-local URL
+`https://github.com/aididalam/traceforge-ui.git`. The root README links all five
+component repositories, and each component README links back to TraceForge.
+Use a recursive clone to check out the pinned versions. No machine-local URL
 or application source files are committed in place of the gitlink.
 A future `qr -> traceforge-qr` submodule will handle dedicated scanning/label
 workflows; it is not created by Phase 1.

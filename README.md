@@ -12,7 +12,7 @@ It is designed to support different companies, products, organizations, workflow
 | `contracts/` | Generic multi-tenant traceability and authorization | [traceforge-contracts](https://github.com/aididalam/traceforge-contracts) |
 | `indexer/` | Contract-event indexing into MySQL projections | [traceforge-indexer](https://github.com/aididalam/traceforge-indexer) |
 | `api/` | Authenticated operations and opt-in public provenance | [traceforge-api](https://github.com/aididalam/traceforge-api) |
-| `ui/` | Next.js public provenance viewer | `aididalam/traceforge-ui` (local; remote publication pending) |
+| `ui/` | Next.js product tracking interface | [traceforge-ui](https://github.com/aididalam/traceforge-ui) |
 
 ## Repository Structure
 
@@ -42,10 +42,9 @@ If the repository has already been cloned:
 git submodule update --init --recursive
 ```
 
-The UI remote was unavailable when checked on 2026-10-05. UI work and several
-root/API commits are local and intentionally unpublished. The configured UI
-origin is `https://github.com/aididalam/traceforge-ui.git`; a fresh remote clone
-will require those referenced commits to be published first.
+All five components are separate repositories registered in [.gitmodules](.gitmodules).
+This parent repository pins their versions. Each component README links back
+to TraceForge, and the table above links to every component repository.
 
 ## Public UI
 

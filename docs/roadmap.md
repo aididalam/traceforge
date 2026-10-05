@@ -20,7 +20,7 @@ the end-user product is complete. The current four validators share one Pi.
 
 | Phase | Deliverable | Completion evidence | Status |
 | --- | --- | --- | --- |
-| 1 | Public web UI foundation (Next.js) | `/track/:trackingId` and compatible `/trace/:tenantId/:entityId`, validated token-free API client, safe timeline/cursors, loading/404/429/unavailable states, mobile/keyboard/accessibility tests, production build and CI gate. | Complete locally; tracking migration/service activation and remote publication pending |
+| 1 | Public web UI foundation (Next.js) | `/track/:trackingId` and compatible `/trace/:tenantId/:entityId`, validated token-free API client, safe timeline/cursors, loading/404/429/unavailable states, mobile/keyboard/accessibility tests, production build and CI gate. | Implemented; live tracking migration/service activation pending |
 | 2 | QR generation and scanning | Canonical HTTPS URL payload, printable labels, approved-origin scanner/manual fallback, camera lifecycle and malicious-payload tests; future `qr` component. | Planned |
 | 3 | Operator access and dashboard | Basic account/invitation and organization access, reviewed login/session gateway, tenant/organization/scope enforcement, authenticated read views and safe read-only operation-status API; no browser signing or bundled bearer credentials. | Planned |
 | 4 | Metadata and evidence workflow | Schema validation, canonical hashing, private document storage/import/upload, authorized resolution and retention. Any public document access needs an explicit separate publication policy. | Planned |
@@ -33,13 +33,11 @@ the end-user product is complete. The current four validators share one Pi.
 
 Build `ui/` as the separate Next.js App Router + TypeScript `traceforge-ui`
 Git repository, registered as a root submodule. Its configured origin is
-`https://github.com/aididalam/traceforge-ui.git`. The remote was unavailable when
-checked on 2026-10-05. The local repo/gitlink are implemented under the user's
-submodule instruction; GitHub creation/publication remains pending under the
-prior no-create/no-push instruction. A fresh remote clone will need the UI
-commit and other local submodule commits published before it can reproduce
-this checkout. No machine-local URL is committed. The future QR repository is
-not created in this phase.
+`https://github.com/aididalam/traceforge-ui.git`. The root README links all five
+component repositories; each component README links back to the parent project.
+Repository publication was authorized on 2026-10-05. A recursive clone checks
+out their pinned commits. No machine-local URL is committed. The future QR
+repository is not created in this phase.
 
 Acceptance requires both public endpoints to work without Authorization or
 cookies, strict response validation, string/BigInt cursor precision, no private
@@ -52,7 +50,7 @@ with a fabricated live record.
 ## Phase 1 verification — 2026-10-05
 
 - Locked dependency installation (`npm ci`) succeeded with Node 22.
-- `npm run verify`: typecheck, production Next build, 13 unit tests and 26
+- Latest UI checks: typecheck, production Next build, 17 unit tests and 38
   browser checks passed. Browser projects are desktop Chromium and Pixel 7
   Chromium; the latter is an emulated profile, not a physical-device test.
 - Browser checks include a real Next/public-fixture gateway round trip,
@@ -62,20 +60,22 @@ with a fabricated live record.
   rejection, plain-text labels and reflow at 320px. Automated axe checks are
   not a completed screen-reader audit or a WCAG certification.
 - `npm run audit:production` reported zero vulnerabilities.
-- Existing API `npm run verify:public-discovery` and root ops/monitoring asset
-  checks passed. API/schema/contracts/indexer behavior was not changed.
-- UI and root changes are local commits. The hosted workflow includes the UI
-  gate; GitHub Actions was not run for unpublished commits. Remote creation,
-  pushing, public HTTPS deployment and shared-proxy rate-budget validation
-  remain pending. Current live data may be unpublished and correctly show 404.
+- API offline public discovery/tracking checks, temporary MySQL tracking tests
+  and root ops/monitoring asset checks passed. The deployed contract and applied
+  migration 004 are preserved; migration 005 is prepared but not applied live.
+- The hosted workflow includes the UI gate. Local checks passed; a hosted run
+  remains separate evidence. Public HTTPS deployment and shared-proxy rate-budget
+  validation remain pending. Current live data may be unpublished and correctly
+  show 404.
 
 Run instructions are in [UI README](../ui/README.md). Development uses port
 3100, leaving the existing API port 3000 separate. Browser-test artifacts are
 generated under ignored `ui/test-results/`; no fixture is shipped as live data.
 
 Phases 2–8 are separate follow-ups, not authorization to execute all of them now.
-No push, remote repository creation, real signer operation, deployment or chain
-broadcast is part of Phase 1. Actual immutable writes in later phases require
+Repository publication was separately authorized. Real signer operations,
+deployment and chain broadcasts remain outside this milestone. Actual immutable
+writes in later phases require
 the project's explicit checkpoint and successful preflight/simulation. Existing
 contract deployment and applied migration 004 are preserved.
 

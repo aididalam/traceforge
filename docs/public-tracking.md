@@ -98,5 +98,7 @@ the preview publication and drops its registry. A separate DB connection
 confirmed zero committed publications, no live registry table and migration 005
 unapplied. The preview ID is temporary and is not a permanent product ID.
 
-The UI GitHub remote and all new commits remain unpublished under the existing
-no-create/no-push instruction.
+The separate [UI repository](https://github.com/aididalam/traceforge-ui) is
+registered as a submodule of [TraceForge](https://github.com/aididalam/traceforge).
+Repository publication was authorized on 2026-10-05; live DB/service activation
+remains a separate step.
