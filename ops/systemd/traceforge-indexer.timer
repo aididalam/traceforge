@@ -1,0 +1,15 @@
+[Unit]
+Description=Run TraceForge Indexer Catch-up Periodically
+
+[Timer]
+Unit=traceforge-indexer.service
+
+OnBootSec=30s
+OnUnitActiveSec=30s
+AccuracySec=5s
+RandomizedDelaySec=3s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
