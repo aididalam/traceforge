@@ -73,7 +73,10 @@ and dated supply history. Approved names replace technical IDs in the main view;
 IDs remain in expandable references. See [public display details](docs/public-product-details.md)
 for the reviewed-field publication policy and pending migration 006 activation.
 
-The first delivery supports a safe public trace page, lookup and timeline.
-QR tools and authenticated operator workflows are subsequent phases. See the
+The public delivery supports product lookup, details and supply history.
+The [business dashboard](docs/operator-dashboard.md) adds invitation-based
+accounts, sign-in and authenticated product/business/operation-status views.
+Operator account migration/service activation remains pending. QR tools and
+product write/receive/transfer workflows are subsequent phases. See the
 [numbered roadmap](docs/roadmap.md) and [UI architecture](docs/ui-architecture.md)
 for scope, acceptance and remaining work.

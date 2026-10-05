@@ -22,7 +22,7 @@ the end-user product is complete. The current four validators share one Pi.
 | --- | --- | --- | --- |
 | 1 | Public web UI foundation (Next.js) | Short `/s/:shortCode`, full `/track/:trackingId` and compatible `/trace/:tenantId/:entityId`, reviewed product details, named holders, dated supply history, token-free client, safe cursors/errors, mobile/keyboard/accessibility tests, production build and CI gate. | Implemented; live migrations 005–007/service activation pending |
 | 2 | QR generation and scanning | Canonical HTTPS URL payload, printable labels, approved-origin scanner/manual fallback, camera lifecycle and malicious-payload tests; future `qr` component. | Planned |
-| 3 | Operator access and dashboard | Basic account/invitation and organization access, reviewed login/session gateway, tenant/organization/scope enforcement, authenticated read views and safe read-only operation-status API; no browser signing or bundled bearer credentials. | Planned |
+| 3 | Operator access and dashboard | Invitation-based accounts, login/session gateway, workspace/business access, product and business views, dated supply history and read-only operation status; no browser signing or bundled bearer credentials. | Implemented viewing/access foundation; migration 008 and real-account/service activation pending |
 | 4 | Metadata and evidence workflow | Schema validation, canonical hashing, private document storage/import/upload, authorized resolution and retention. Any public document access needs an explicit separate publication policy. | Planned |
 | 5 | Operator business workflows | Entity/trace/state/metadata/link/close UI, two-step custody, simulate → confirm → stable idempotency → broadcast → recovery; pending/failed/confirmed/indexer-lag behavior. | Planned |
 | 6 | Onboarding and business configuration | Tenant/organization/wallet/role/capability administration, semantics/workflow setup, missing administrative APIs and isolation tests. | Planned |
@@ -115,3 +115,24 @@ collision/concurrency checks and desktop/mobile verification are complete.
 Migration 007 was tested with temporary MySQL tables and remains unapplied live.
 See [short-link design and activation](public-short-links.md). QR tools and
 operator dashboard/account workflows remain subsequent phases.
+
+## Business dashboard addition — 2026-10-05
+
+The user requested dashboard work before QR delivery. Account/invitation and
+viewing access now provide `/operator`, sign-in, product lists/search/filters,
+product information and named dated supply history, workspace businesses and
+business-scoped operation activity. API sessions and a separate Next session
+gateway enforce workspace/business membership. Browser credentials stay in
+HttpOnly cookies and API credentials remain server-side. Viewing sessions have
+no chain-write permission. Existing public tracking and `/v1/*` auth remain
+preserved.
+
+API build/offline operator/security/public gates, temporary MySQL account and
+isolation tests, UI production build, 26 unit tests and 68 desktop/mobile browser
+checks passed. MySQL tests confirmed unchanged live data/schema/ledger.
+Migration 008 and real invitation/account/service activation remain pending;
+no permanent account or blockchain write was performed. See
+[dashboard design and activation](operator-dashboard.md). QR remains phase 2,
+and receive/transfer/update/upload flows remain phases 4–5. Password recovery,
+MFA, administrator web controls and a shared multi-instance session store are
+follow-ups; they are not claimed complete by this viewing milestone.

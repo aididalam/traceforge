@@ -1,8 +1,8 @@
 # TraceForge UI architecture
 
 Status: v0.30 public UI architecture, updated on 2026-10-05. Phase 1 uses
-Next.js App Router and TypeScript. Operator and QR workflows below remain
-future work. See [the delivery roadmap](roadmap.md) for completion evidence.
+Next.js App Router and TypeScript. Operator account/read views are implemented;
+QR and operator write workflows below remain future work. See [the delivery roadmap](roadmap.md) for completion evidence.
 
 ## Repository and first delivery
 
@@ -15,9 +15,10 @@ or application source files are committed in place of the gitlink.
 A future `qr -> traceforge-qr` submodule will handle dedicated scanning/label
 workflows; it is not created by Phase 1.
 
-The first UI delivery is the public provenance page. Operator screens, login,
-camera scanning, QR generation, document publication, and write controls are
-future work with their own acceptance checks. Public entity listing/search is
+The first UI delivery is the public provenance page; business account/read
+screens have subsequently been implemented. Camera scanning, QR generation,
+document publication and write controls remain future work with their own
+acceptance checks. Public entity listing/search is
 not available in the current API and must not be built by enumerating IDs.
 
 Use Next.js App Router + React + TypeScript, native `fetch`, Zod runtime
@@ -184,22 +185,27 @@ the view. Never show cached data as proof that an entity is still published.
 
 ## Operator separation and future write workflow
 
-Existing `/v1/*` routes require bearer authentication. The operator API remains
-separate from the public client and must enforce token tenant/scopes regardless
-of what the UI shows. Existing `GET /v1/auth/me` and `GET /v1/auth/preflight` can
-provide authenticated context/preflight information to a future operator client.
-There is no browser login/session endpoint or public publication mutation endpoint
-today; publication remains an operator CLI action.
+The [business dashboard](operator-dashboard.md) implements phase 3 account and
+viewing access through a separate `/operator/v1/*` API and fixed Next
+`/operator/api/*` session gateway. Email-bound invitations create accounts with
+one workspace/business binding. The API checks active account, workspace,
+business and membership on every session read. Product/history access is
+workspace-scoped, and recorded operation-status access is also business-scoped.
+Existing `/v1/*` bearer tokens, authentication and public opt-in gates remain
+unchanged. Public bundles never import the operator gateway.
 
-Recommend a future operator backend-for-frontend (BFF) that stores API credentials
-on the server and gives the browser a short-lived, HttpOnly, Secure session with
-CSRF/origin checks. It must enforce user-to-tenant/organization/scope mapping;
-a shared unrestricted service credential is insufficient. This BFF, its login
-integration, session routes, and authorization model are future work and must
-be designed before operator UI delivery. Never bundle credentials, put them in
-URLs, or persist bearer tokens in browser storage. Private keys, signer files,
-signing and serialized transactions stay on the API's server boundary; the
-browser never handles them or connects directly to Besu.
+The gateway stores short-lived API session credentials in server memory and
+gives the browser an opaque HttpOnly, SameSite=Strict cookie (Secure on HTTPS),
+with exact Origin/CSRF validation. No unrestricted service credential is used.
+Restarting the single Next process signs users out; shared session storage is
+required before multi-instance deployment. Migration 008 and real invitations
+are prepared and temporarily tested, pending permanent DB/service activation.
+
+The dashboard's permissions are viewing only. It does not use API write tokens,
+preflight/signing code, wallet keys or direct Besu access. Product write controls,
+password recovery/MFA and administrator web controls remain future work.
+The following write workflow describes later delivery; login does not grant
+chain capability or enable broadcasting.
 
 For reference, these existing generic operations use POST to the following
 paths under `/v1/tenants/:tenantId/entities/:entityId`:
@@ -247,12 +253,14 @@ Future operator writes follow this sequence:
    `idempotency_conflict` or terminal `operation_failed`; treat
    `broadcast_recovery_pending` as pending, retaining identifiers.
 
-There is currently no GET operation-status/recovery endpoint. Do not invent one
-or poll a POST in the background. A future authenticated read-only status API
-and a reviewed operator draft/recovery store are needed for reliable reload and
-cross-device recovery. Until then, retain exact pending payloads only in the
-active operator session and explain the reload limitation; do not persist token,
-private document, signer, or signed transaction data in browser storage.
+`GET /operator/v1/operations` now provides an allowlisted read-only snapshot of
+the latest 50 operations for the authenticated business/workspace. Refresh reads
+this endpoint; there is no background POST polling or resubmission. It excludes
+signed transactions, request payloads, token IDs and idempotency keys. Exact
+write-draft storage, same-key recovery and cross-device resumption remain future
+work; this status view does not authorize a recovery broadcast. Never persist
+credentials, private document bodies or signer/signed transaction data in browser
+storage.
 
 ## Accessibility and QR boundaries
 
