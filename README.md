@@ -64,19 +64,21 @@ or blockchain changes. See [UI setup and verification](ui/README.md).
 Product links can use `/s/<12-character-code>` for sharing; the full
 `/track/<trackingId>` and original tenant/entity links remain compatible.
 The homepage's single Tracking ID field accepts either code or full ID.
-Registry migrations are prepared and temporarily tested, pending live DB/service
-activation. See [single-ID tracking](docs/public-tracking.md) and
+Registry and dashboard migrations are applied to the fresh local database. See [single-ID tracking](docs/public-tracking.md) and
 [short links and activation](docs/public-short-links.md).
 
 The public page shows shared product information, the current business holder,
 and dated supply history. Approved names replace technical IDs in the main view;
 IDs remain in expandable references. See [public display details](docs/public-product-details.md)
-for the reviewed-field publication policy and pending migration 006 activation.
+for the reviewed-field publication policy.
 
-The public delivery supports product lookup, details and supply history.
-The [business dashboard](docs/operator-dashboard.md) adds invitation-based
-accounts, sign-in and authenticated product/business/operation-status views.
-Operator account migration/service activation remains pending. QR tools and
-product write/receive/transfer workflows are subsequent phases. See the
-[numbered roadmap](docs/roadmap.md) and [UI architecture](docs/ui-architecture.md)
-for scope, acceptance and remaining work.
+The [business dashboard](docs/operator-dashboard.md) supports independent signup,
+product creation, QR generation/scanning, direct receipt and holder-only close.
+See the [delivery roadmap](docs/roadmap.md), [UI architecture](docs/ui-architecture.md)
+and [fresh-chain validation](docs/direct-claim-upgrade.md).
+
+## Independent businesses and product receipt
+
+Businesses register independently, add products in their own workspace and receive products from any producer after physical handover. A scan displays the product; a separate confirmation records receipt and changes the holder. Inventory spans supply chains. The current holder can close tracking as Sold, Lost, Damaged or Disposed. Closed records stay readable and cannot be received again.
+
+The Next.js business UI provides signup, product creation, QR download/camera scanning, receipt confirmation and close actions. Public tracking remains an opt-in view with one Tracking ID or short code, product details, named holders and dated history. See [business dashboard flow](docs/operator-dashboard.md).

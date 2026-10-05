@@ -74,6 +74,13 @@ The API environment should normally contain:
     TRACEFORGE_SIGNER_ADDRESS
     TRACEFORGE_SIGNER_KEY_FILE
     TRACEFORGE_BROADCAST_ENABLED
+    TRACEFORGE_BUSINESS_WALLET_DIRECTORY
+
+The managed business wallet directory must be owner-only (0700), with keys 0600.
+The legacy single-signer settings are optional for generic token integrations;
+independent businesses use their own managed wallets. The current local write
+deployment and continuous public-snapshot refresh are documented in
+[the direct-claim activation guide](../docs/direct-claim-upgrade.md).
 
 The indexer environment should contain:
 
@@ -322,5 +329,6 @@ The traceforge service user must be able to run the existing chain
 health-check script. On Docker-based hosts, review Docker access
 carefully because Docker control is security-sensitive.
 
-Hosted CI intentionally does not run deployment-readiness checks
-that require live MySQL, Besu, signer configuration, or secrets.
+Hosted CI uses its own synthetic MySQL service and local Hardhat chain for the
+direct-claim integration test. It does not access Pi, the live database or real
+signer credentials. Remaining deployment-readiness checks run on the target host.

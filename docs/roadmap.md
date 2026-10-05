@@ -16,18 +16,24 @@ published provenance through a normal web/QR experience.
 These are implemented foundations, not a claim that production deployment or
 the end-user product is complete. The current four validators share one Pi.
 
-## Delivery order
+## Current delivery status
 
-| Phase | Deliverable | Completion evidence | Status |
-| --- | --- | --- | --- |
-| 1 | Public web UI foundation (Next.js) | Short `/s/:shortCode`, full `/track/:trackingId` and compatible `/trace/:tenantId/:entityId`, reviewed product details, named holders, dated supply history, token-free client, safe cursors/errors, mobile/keyboard/accessibility tests, production build and CI gate. | Implemented; live migrations 005–007/service activation pending |
-| 2 | QR generation and scanning | Canonical HTTPS URL payload, printable labels, approved-origin scanner/manual fallback, camera lifecycle and malicious-payload tests; future `qr` component. | Planned |
-| 3 | Operator access and dashboard | Invitation-based accounts, login/session gateway, workspace/business access, product and business views, dated supply history and read-only operation status; no browser signing or bundled bearer credentials. | Implemented viewing/access foundation; migration 008 and real-account/service activation pending |
-| 4 | Metadata and evidence workflow | Schema validation, canonical hashing, private document storage/import/upload, authorized resolution and retention. Any public document access needs an explicit separate publication policy. | Planned |
-| 5 | Operator business workflows | Entity/trace/state/metadata/link/close UI, two-step custody, simulate → confirm → stable idempotency → broadcast → recovery; pending/failed/confirmed/indexer-lag behavior. | Planned |
-| 6 | Onboarding and business configuration | Tenant/organization/wallet/role/capability administration, semantics/workflow setup, missing administrative APIs and isolation tests. | Planned |
-| 7 | Deployment and reliability validation | Linux/Pi service installation/reboot, HTTPS/proxy controls, continuous indexer operation, backup/restore drill, monitoring/alerts, load/security checks, independent validator hosts and fault tests. | Planned |
-| 8 | End-to-end demonstration and evaluation | Reproducible supply-chain demo, consumer/operator acceptance, provenance/security proofs, performance/operational cost/usability measurements and research comparison. | Planned |
+The 2026-10-05 direct-claim upgrade replaces the earlier two-step custody plan.
+The old development ledger and database were reset, the new contract deployed
+on Pi, and all local migrations applied. Historical acceptance notes below
+record earlier milestones; their temporary-write restrictions no longer apply.
+See [the upgrade receipt and live checks](direct-claim-upgrade.md).
+
+| Phase | Deliverable | Current status |
+| --- | --- | --- |
+| 1 | Public tracking, product details, holder names and dated history | Implemented and activated locally |
+| 2 | QR download, camera scanning and manual fallback | Implemented in the Next.js UI; separate QR repository optional |
+| 3 | Business registration, login, dashboard and cross-producer inventory | Implemented and activated locally; optional staff invitations retained |
+| 4 | Metadata and evidence workflow | Product/evidence hashing and private storage implemented; arbitrary document uploads, retention policy and additional business schemas remain |
+| 5 | Product business workflows | Create, direct receipt, close and journal statuses implemented; custom trace/state/metadata/link UI and richer interrupted-request recovery remain |
+| 6 | Business configuration and administration | Independent signup registers own wallet/workspace without approval; administrator UI, account recovery/MFA and configurable workflows remain |
+| 7 | Deployment and reliability | Local Pi chain/API/UI and continuous projection running; HTTPS hosting, supervised restart/reboot, load tests, shared sessions and independent validator hosts remain |
+| 8 | End-to-end demonstration and evaluation | Real Producer → Distributor → Shop → Sold demo verified; broader consumer/operator evaluation and performance measurements remain |
 
 ## Phase 1 scope and acceptance
 

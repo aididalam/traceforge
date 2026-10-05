@@ -1,392 +1,154 @@
 # TraceForge UI architecture
 
-Status: v0.30 public UI architecture, updated on 2026-10-05. Phase 1 uses
-Next.js App Router and TypeScript. Operator account/read views are implemented;
-QR and operator write workflows below remain future work. See [the delivery roadmap](roadmap.md) for completion evidence.
+Updated 2026-10-05. The `ui/` submodule is the separate
+[traceforge-ui](https://github.com/aididalam/traceforge-ui) repository, using
+Next.js App Router, React and TypeScript. Public tracking and business workflows
+are implemented. See [current delivery status](roadmap.md) and
+[the fresh-chain upgrade](direct-claim-upgrade.md).
 
-## Repository and first delivery
+## Public tracking
 
-The root submodule is `ui -> traceforge-ui`, alongside `api`, `chain`,
-`contracts`, and `indexer`. Its configured origin is
-`https://github.com/aididalam/traceforge-ui.git`. The root README links all five
-component repositories, and each component README links back to TraceForge.
-Use a recursive clone to check out the pinned versions. No machine-local URL
-or application source files are committed in place of the gitlink.
-A future `qr -> traceforge-qr` submodule will handle dedicated scanning/label
-workflows; it is not created by Phase 1.
+The home page has one Tracking ID input. It accepts a full bytes32 ID or a
+12-character short code. `/track/:trackingId` and `/s/:shortCode` resolve to the
+same product; compatible `/trace/:tenantId/:entityId` routes remain available.
+Full IDs use `^0x[0-9a-fA-F]{64}$`. Short codes use
+`0123456789abcdefghjkmnpqrstvwxyz`. Inputs normalize to lowercase.
 
-The first UI delivery is the public provenance page; business account/read
-screens have subsequently been implemented. Camera scanning, QR generation,
-document publication and write controls remain future work with their own
-acceptance checks. Public entity listing/search is
-not available in the current API and must not be built by enumerating IDs.
+`public-client.ts` and fixed Next public GET handlers validate strict response
+allowlists and identity/cursor consistency. Requests omit credentials and
+Authorization, disable caching and redirects, and use bounded timeouts.
+Public bundles never import operator session or signing code. Each API read
+checks explicit publication; missing and unpublished products share a 404.
+The public client never falls back to authenticated document endpoints or RPC.
 
-Use Next.js App Router + React + TypeScript, native `fetch`, Zod runtime
-validation and CSS. Versions are pinned in `ui/package.json` and the lockfile;
-CI uses Node 22. This follows the user's Next.js requirement and the framework's
-[installation](https://nextjs.org/docs/app/getting-started/installation) and
-[server/client component](https://nextjs.org/docs/app/getting-started/server-and-client-components)
-boundaries. No browser blockchain SDK is needed.
+The page shows approved product details, the current business name and dated
+supply history. Familiar product/status/holder wording appears first. Hex IDs,
+hashes, saved event IDs and transaction references remain in collapsed details.
+Names are never inferred from identifiers. Business names require explicit
+profile consent; product details require explicit publication. Private metadata
+and evidence documents are not published by exposing their hashes.
 
-`src/app/s/[shortCode]/page.tsx`, `src/app/track/[trackingId]/page.tsx` and the compatible
-`src/app/trace/[tenantId]/[entityId]/page.tsx` produce dynamic loading shells;
-`src/components/use-trace.ts` owns transient browser request state.
-`src/lib/public-client.ts` reads and validates the public API contract.
-`src/lib/public-gateway.ts` is imported only by the App Router public GET
-handlers (and unit tests). Shared accessible components live in
-`src/components/`. A future operator feature tree/client stays separate;
-public bundles must not import operator credentials or signing code.
+Event dates use recorded Unix timestamps and display UTC. Missing or
+unrepresentable dates have a plain-language fallback. Event and block IDs stay
+as decimal strings; BigInt comparisons preserve values above `2^53`. Pagination
+uses the exact returned cursor, without offsets or overlapping requests.
+Refresh and returning to a page revalidate publication and clear revoked data.
+No persistent provenance cache or automatic write effect is used.
 
-## Public page and QR contract
+Loading, unavailable, invalid, unpublished/missing, empty history and rate-limit
+states have distinct accessible messages. A 429 honors Retry-After. Errors never
+claim that a cached record is still current or published. Indexed views can lag
+chain confirmation; recorded claims do not independently prove physical truth.
 
-The home page has one Tracking ID input and a submit button. It accepts a
-12-character short code or a bytes32 Tracking ID; URL and tenant/entity entry
-modes are absent. Shareable short URLs use `/s/:shortCode`; full
-`/track/:trackingId` and original `/trace/:tenantId/:entityId` remain compatible.
-Short codes use `0123456789abcdefghjkmnpqrstvwxyz`; full/internal IDs are bytes32
-values matching `^0x[0-9a-fA-F]{64}$`. Normalize to lowercase after validation. Validate route
-parameters before sending a request. Invalid links get a local invalid-link
-state and no API request. Encode path segments when constructing URLs.
+## Business dashboard and authorization
 
-A future QR payload is a normal HTTPS URL, using either full or short form:
+`/operator/sign-in` supports independent business signup and email/password
+login. Signup registers the business wallet and its own production workspace
+on chain; no invitation or owner approval is required. A selected business type
+is descriptive and grants no access to another producer's workspace. Optional
+staff invitations join an existing business.
 
-```text
-https://traceforge.example/track/<trackingId>
-https://traceforge.example/s/<12-character-code>
-```
+The API checks active account and global business identity. Inventory and
+history include products the business produced, currently holds or previously
+handled, across producers. An unrelated business cannot read private product
+history simply by knowing the ID. Operation activity is restricted to the
+current business and excludes signed payloads and idempotency keys.
 
-The hostname above is a reserved example, not an existing deployment. The
-generator uses a configured canonical site origin and validated IDs. It never
-adds credentials, private identifiers, signed data, query parameters, or fragments.
-An identifier/URL is not permission: publication is checked by the API on every
-read, and an unpublished entity's QR can remain valid while returning 404.
+Businesses create products in their own workspace. The form explicitly chooses
+whether name, description and supply history are shared publicly. Each product
+gets a Tracking ID and a downloadable QR. Production create/edit/link actions
+retain workspace roles and capability checks.
 
-The global public Tracking ID resolves to a tenant/entity pair through a
-registry with a global primary key and a unique pair constraint. Entity IDs
-alone remain tenant-scoped. IDs survive unpublication/republication, but every
-lookup still joins publication and current entity state. See
-[registry design and activation](public-tracking.md). Migration 005 is prepared,
-not applied to the live DB under the current temporary-write-only restriction.
-Short codes map to this global ID in a separate stable registry with publication
-checks on every read. Migration 007 is also prepared and not applied live.
-See [short-link identity, API and activation](public-short-links.md).
+`/operator/receive` accepts a full ID, short code, approved product URL or camera
+QR. Lookup previews the public product name, holder, terminal state and custody
+version. Scanning makes no custody change. The user must separately confirm
+physical receipt. The fixed receive endpoint calls `claimCustody`, which changes
+holder immediately and records previous/new business, actor, evidence, time and
+version. Sender proposals, predetermined recipients and receiving workspace
+roles are absent. A stale version cannot overwrite a subsequent handover.
 
-The public client calls only these endpoints:
+The current holder can close an open product with Sold, Lost, Damaged or
+Disposed, after explicit confirmation. Global active identity and holder checks
+apply without a Shop or production-workspace role. Closed products stay readable
+and cannot be received again. Customer scans only display public history.
 
-```text
-GET /public/v1/tracking/:trackingId
-GET /public/v1/short-links/:shortCode
-GET /public/v1/tenants/:tenantId/entities/:entityId
-GET /public/v1/tenants/:tenantId/entities/:entityId/history
-    ?limit=50&afterEventId=<decimal-string>
-```
+## Browser/server boundary and writes
 
-Use `credentials: "omit"`, no Authorization header, `cache: "no-store"`,
-an abort signal, and a bounded timeout. Validate response shapes before rendering.
-Keep public and operator client instances separate so shared interceptors cannot
-attach a bearer token to public requests. The public client must never fall back
-to `/v1/*`, a document route, a direct database query, or a chain RPC request.
+Fixed `/operator/api/*` handlers call only matching `/operator/v1/*` routes.
+The Next server keeps the short-lived API credential in memory; browsers receive
+an opaque HttpOnly, SameSite=Strict cookie, with Secure and `__Host-` prefix on
+HTTPS. State-changing requests require the exact configured Origin and strict
+payload schemas. Queries cannot choose an upstream URL, tenant or signer.
+Response validation prevents private fields or mismatched product identities
+from reaching the client. Sign-out clears the local session even if API
+revocation is unavailable.
 
-## Public provenance contract
+Business wallet keys remain in an owner-only API directory. The API validates
+chain ID and runtime bytecode, simulates contract authorization, serializes
+writes per wallet and records a journal entry before broadcast. Exact payload
+and idempotency key retries reuse the same signed transaction. Confirmed
+receipts are checked for the expected actor/product/event; confirmed journals
+clear serialized transactions. A timeout is an uncertain outcome, not proof of
+failure. The activity page provides read-only status refresh. Cross-device
+write draft recovery remains future work; never invent a new key to recover an
+uncertain write.
 
-The entity response is the complete current public allowlist:
+The current Next session store assumes one process, with at most 1,000 active
+browser sessions. Restarting it signs users out. Shared session storage is
+required before horizontal scaling. No passwords, API tokens, wallet keys,
+private document bodies or signed transactions belong in browser storage.
 
-| Fields | Interpretation |
+## QR and camera
+
+QR generation encodes a validated `/track/:trackingId` URL under
+NEXT_PUBLIC_SITE_ORIGIN, falling back to the current page origin. It contains
+no credentials or product document data and does not itself publish a product.
+The operator scanner accepts the configured canonical origin and current site
+origin. It rejects other origins, schemes, credentials, query strings, fragments
+and malformed paths. Camera frames are decoded locally with jsQR and are never
+uploaded. Camera access starts after a user action; tracks stop on exit or
+manual stop. Manual entry remains available when the camera is denied.
+HTTPS is required for normal deployed camera access; loopback supports local
+browser development. Dedicated QR packaging or print layouts can be added later.
+
+## Configuration and deployment
+
+| Variable | Purpose |
 | --- | --- |
-| `tenantId`, `entityId` | Tenant-scoped entity identity; show full values on demand. |
-| `entityType`, `entityTypeLabel` | Type hash and nullable display label. |
-| `metadataHash` | Recorded metadata hash; no document body or download is implied. |
-| `currentState`, `currentStateLabel` | Current indexed state hash and nullable label. |
-| `currentCustodian` | Organization bytes32 ID; retain in closed reference details. |
-| `productInfo` | Nullable, separately approved product name/description and bounded label/value fields. |
-| `currentHolder` | Business `{ id, name, type }`; name/type can be null unless approved for this product. |
-| `closed` | Boolean terminal flag, independent of the state label. |
-| `createdAt`, `closedAt` | Decimal strings containing Unix seconds; `closedAt` can be null. |
+| NEXT_PUBLIC_API_BASE_URL | Optional public browser API origin; empty uses fixed same-origin GET handlers |
+| NEXT_PUBLIC_SITE_ORIGIN | Optional canonical HTTPS origin for QR links |
+| TRACEFORGE_PUBLIC_API_ORIGIN | Credential-free API origin for the public server gateway |
+| TRACEFORGE_OPERATOR_API_ORIGIN | Fixed credential-free API origin for the operator server gateway |
+| TRACEFORGE_OPERATOR_SITE_ORIGIN | Exact site origin for operator Origin checks |
 
-Consumer wording uses product tracking/history, current status and current
-holder. Translate known platform event terms into familiar words, space
-CamelCase business labels, and render all labels as plain text. Unknown status
-names use “Status name unavailable”; type names fall back to “Product tracking”.
-Retain the original identifiers/hashes in closed reference sections with copy
-actions. Timestamp dates use UTC after range validation; “Date unavailable”
-keeps an unrepresentable original value in expanded references. Do not invent product names,
-descriptions, certificate claims, custodian names, or tenant branding from hashes.
+Origins reject credentials, path prefixes, queries and fragments. Server APIs
+permit private loopback HTTP and require HTTPS elsewhere. Public variables are
+embedded at build time; rebuild to change them. Never place secrets in them.
+Use a Next Node runtime, not static export.
 
-History returns `{ tenantId, entityId, entity, events, page }`; `entity` is the
-same current projection, not an entity snapshot at each historical event.
-Each event contains only:
+Local API/UI/projection services are activated. Public HTTPS hosting, supervised
+restart/reboot, CSP/proxy/load validation and shared sessions remain delivery
+work. The API currently counts gateway requests under one source IP and has an
+in-process rate limiter; public rollout needs measured proxy and cluster quotas.
+API broadcasting is an explicit server deployment setting; a UI control cannot
+override it. Synthetic UI tests use no blockchain writes. The disposable API
+integration test deliberately enables writes only against local Hardhat and its
+isolated database. Compatible API/UI/contract ABI releases must be deployed
+together; the reset upgrade cannot roll back simply by checking out old code.
 
-```text
-eventId, eventName, blockNumber, transactionHash, transactionIndex, logIndex,
-eventType, eventTypeLabel, stateAfter, stateAfterLabel,
-linkType, linkTypeLabel, metadataHash, evidenceHash,
-occurredAt, organization, transfer
-```
+## Verification
 
-`eventId` and `blockNumber` are decimal strings. Keep them as strings in JSON
-and state; use `BigInt` only for comparison, never convert cursors to JS numbers.
-`transactionIndex` and `logIndex` are integers. Semantic/hash fields can be null.
-`occurredAt` is nullable Unix seconds taken from the event's actual timestamp
-argument. `organization` and transfer `from`/`to` objects contain business IDs
-and separately approved display names/types. Actor wallets, roles, raw arguments
-and private document bodies remain absent. Do not manufacture event dates from
-block heights or resolve hashes through the authenticated document API.
+Vitest covers allowlists, URL validation, exact cursors, cancellation, session
+rotation, Origin checks, strict write payloads and matching product identities.
+Playwright runs desktop and mobile Chromium against a production Next build
+and synthetic API fixtures. It covers public history/privacy/errors, signup,
+login/invitations, QR decoding, receipt and close confirmation, logout and axe
+accessibility checks. These tests use no live API credentials or keys.
 
-Product display details have an explicit separate publication contract in
-[public product details](public-product-details.md). Publishing an entity alone
-grants no document access. Full metadata and evidence documents remain private;
-approved display snapshots are bound to their current indexed references and
-suppressed when those references change.
-
-## Timeline and request state
-
-On a single-ID route, resolve the public ID first, then fetch detail and the
-first history page without automatic write effects. Refresh/restoration resolves
-the ID again. Both subsequent reads retain their own publication gate. Use
-event ID as the timeline key; display events in API order, oldest first. The
-page shows shared product information and current business name before supply
-history. The timeline uses familiar update titles, UTC dates/times and business
-names, with local positions such as “UPDATE 1”. Missing names use “Business name
-not shared”. Transfer requests never imply receipt or change the current holder.
-Saved event IDs, block/transaction references and
-metadata/evidence hashes remain available in closed “Update references” sections.
-Do not assume events alternate in any
-particular pattern, merge distinct events, or reconstruct hidden relationships.
-There is no public explorer URL configured, so transaction hashes are copyable
-text; external explorer links require a future reviewed configuration.
-
-Pagination uses `page: { limit, hasMore, nextAfterEventId }`. The API defaults
-to 50, permits 1..100, and bounds cursors to unsigned 64-bit integers. Use the
-returned next cursor when `hasMore` is true; stop when it is false and the next
-cursor is null. Do not use offsets or calculate the next cursor by adding one.
-Load more on explicit user action, prevent overlapping requests, and deduplicate
-by event ID if a request is retried. Abort and clear state when IDs change.
-
-History is the available public view, not the complete private ledger. Relationship
-domain events require both endpoints to be published and omit their IDs. Entity
-trace hash events can still be visible. Publishing/unpublishing a linked entity
-can change visibility between pages: there is no snapshot token or total count.
-Offer an explicit refresh; do not describe a partial timeline as complete.
-
-| State | Required UI behavior |
-| --- | --- |
-| Loading | Announce progress; use stable placeholders; cancel obsolete requests. |
-| 200 with empty history | Show product detail and “No updates yet”. |
-| 404 | Show one “Product history unavailable” state for missing and unpublished entities; clear loaded detail/history and offer no existence probe. |
-| 400 | Show invalid link/query or contract error; do not retry automatically. |
-| 429 | Honor `Retry-After`, disable immediate retry/load-more, and show when a retry is possible. |
-| Network timeout, 5xx, invalid response | Show “Product tracking is temporarily unavailable” with explicit retry, without claiming fresh provenance. |
-| 401/403 from public read | Treat as configuration/contract failure; never prompt for an operator token. |
-
-Respect `Cache-Control: no-store`. Keep public data in transient page memory;
-exclude it from service-worker/offline and persistent caches. Revalidate on
-explicit refresh and returning to the page; if either read returns 404, discard
-the view. Never show cached data as proof that an entity is still published.
-
-## Operator separation and future write workflow
-
-The [business dashboard](operator-dashboard.md) implements phase 3 account and
-viewing access through a separate `/operator/v1/*` API and fixed Next
-`/operator/api/*` session gateway. Email-bound invitations create accounts with
-one workspace/business binding. The API checks active account, workspace,
-business and membership on every session read. Product/history access is
-workspace-scoped, and recorded operation-status access is also business-scoped.
-Existing `/v1/*` bearer tokens, authentication and public opt-in gates remain
-unchanged. Public bundles never import the operator gateway.
-
-The gateway stores short-lived API session credentials in server memory and
-gives the browser an opaque HttpOnly, SameSite=Strict cookie (Secure on HTTPS),
-with exact Origin/CSRF validation. No unrestricted service credential is used.
-Restarting the single Next process signs users out; shared session storage is
-required before multi-instance deployment. Migration 008 and real invitations
-are prepared and temporarily tested, pending permanent DB/service activation.
-
-The dashboard's permissions are viewing only. It does not use API write tokens,
-preflight/signing code, wallet keys or direct Besu access. Product write controls,
-password recovery/MFA and administrator web controls remain future work.
-The following write workflow describes later delivery; login does not grant
-chain capability or enable broadcasting.
-
-For reference, these existing generic operations use POST to the following
-paths under `/v1/tenants/:tenantId/entities/:entityId`:
-
-| Operation | Simulate suffix | Broadcast suffix |
-| --- | --- | --- |
-| Create entity | `/create/simulate` | `/create/broadcast` |
-| Record trace | `/traces/simulate` | `/traces/broadcast` |
-| Set state | `/state/simulate` | `/state/broadcast` |
-| Update metadata | `/metadata/simulate` | `/metadata/broadcast` |
-| Link entities | `/links/simulate` | `/links/broadcast` |
-| Set link status | `/links/status/simulate` | `/links/status/broadcast` |
-| Close entity | `/close/simulate` | `/close/broadcast` |
-
-Two-step custody uses existing `/custody/proposals/simulate` and
-`/custody/proposals/broadcast`, then `/custody/acceptances/simulate` and
-`/custody/acceptances/broadcast` under the same entity prefix. A proposal alone
-does not complete custody transfer. Request schemas come from each route's
-existing OpenAPI schema; do not guess operation parameters.
-
-Future operator writes follow this sequence:
-
-1. Validate tenant, organization, scopes and input; call the matching simulate
-   endpoint. Display safety checks and proposed immutable changes. Simulation
-   does not authorize a broadcast or guarantee state remains unchanged.
-2. Obtain explicit user confirmation of the exact operation and payload. Changing
-   either requires another simulation and confirmation. Generic broadcast bodies
-   require the existing `confirm: "BROADCAST"` value.
-3. Create one `Idempotency-Key` per confirmed logical operation (a UUID satisfies
-   the existing 8..128-character bound). Retain the same key and exact payload
-   for retries; prevent double submission. The API owns canonical hashing,
-   safety checks, signing and the write journal.
-4. Call the existing authenticated broadcast route only when the deployment's
-   operator write policy enables it. Broadcasting remains disabled for this
-   milestone and for all tests in this task; no UI feature flag can enable the
-   server's signer or override authorization.
-5. Show `operationId`, transaction hash and confirmed/recovered outcomes as
-   available. A timeout is an unknown outcome, not proof of failure. Confirmation
-   can precede indexer projection; label “confirmed, awaiting indexed view” until
-   an authenticated entity/history refresh shows the change.
-6. Preserve the operation context across an interrupted request. Recovery through
-   the same broadcast POST, key and payload can recover an existing journal entry
-   and can re-submit its stored transaction. Make that consequence visible and
-   require an explicit recovery action; never silently issue a new key. Halt on
-   `idempotency_conflict` or terminal `operation_failed`; treat
-   `broadcast_recovery_pending` as pending, retaining identifiers.
-
-`GET /operator/v1/operations` now provides an allowlisted read-only snapshot of
-the latest 50 operations for the authenticated business/workspace. Refresh reads
-this endpoint; there is no background POST polling or resubmission. It excludes
-signed transactions, request payloads, token IDs and idempotency keys. Exact
-write-draft storage, same-key recovery and cross-device resumption remain future
-work; this status view does not authorize a recovery broadcast. Never persist
-credentials, private document bodies or signer/signed transaction data in browser
-storage.
-
-## Accessibility and QR boundaries
-
-Target [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/): semantic headings and timeline
-lists, keyboard access, visible focus, labelled controls, sufficient contrast,
-responsive reflow/zoom, appropriate touch targets, and reduced-motion support.
-Announce loading/errors without repeatedly reading the entire timeline. Pair
-status colors with text; make complete hash values available to assistive
-technology. Test focus after route changes, retry and load-more. Automated
-checks supplement keyboard and screen-reader review.
-
-QR generation (future) converts the validated public URL into an image/SVG plus
-printable text; it does not publish the entity or embed API data. QR scanning
-(future) decodes locally, validates HTTPS, an approved origin and an exact
-`/s/<code>`, `/track/<trackingId>` or compatible two-ID path, and rejects
-credentials/query/fragment/other schemes, and navigates to the
-public page. Treat scans as untrusted input, never as instructions to call an
-arbitrary URL. Provide manual URL/ID entry when camera access is denied.
-Request camera permission only after user action, stop tracks on exit, and do
-not upload camera frames. Browser camera access requires a secure context and
-permission; see [getUserMedia guidance](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
-
-The future `qr` submodule consumes the same URL/public-response contract and
-delegates provenance display to `ui`; it must not duplicate publication/auth
-decisions, expose operator clients, or bypass the API through chain access.
-Extract shared URL validators/types into a reviewed package later if needed.
-
-## Environment, proxy and deployment
-
-UI configuration in `ui/.env.example`:
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=
-NEXT_PUBLIC_SITE_ORIGIN=
-TRACEFORGE_PUBLIC_API_ORIGIN=http://127.0.0.1:3000
-```
-
-Empty public values use the page's origin. An explicit browser API/site origin
-must be HTTPS with no credentials, query, fragment or path prefix; loopback HTTP
-is permitted in development configuration only. Next configuration validates
-these values before build/start. Append the existing full API paths once. The
-site origin is the future canonical QR destination; do not derive it from a
-scanned URL, query parameter or unchecked proxy header. `NEXT_PUBLIC_*` values
-are embedded in browser builds and require rebuilding to change them; secrets
-never belong there. See [Next environment guidance](https://nextjs.org/docs/app/guides/environment-variables).
-
-`TRACEFORGE_PUBLIC_API_ORIGIN` is a credential-free, server-only origin. It is
-required at production runtime; development defaults to `http://127.0.0.1:3000`.
-HTTPS is required for non-loopback upstreams; HTTP loopback is allowed for a
-private colocated API. UI dev/start uses port 3100 to keep API port 3000 separate.
-
-By default, browser requests go to fixed same-origin Next GET handlers with the
-exact public API paths. The gateway forwards only fixed public GET requests to
-the configured upstream, with fresh Accept headers, no cookies/Authorization,
-no redirects and a ten-second timeout. It validates the public response
-allowlists again and returns sanitized errors, `Retry-After` for 429, and
-`Cache-Control: no-store`. It never forwards inbound headers or upstream
-Set-Cookie/private error bodies. It has no generic proxy, login, operator,
-document, DB or RPC route. POST to the public handlers returns 405.
-
-Run the Next production Node server behind HTTPS. The `/track/...` and
-`/trace/...` routes are dynamic and render only a loading shell on the server; provenance is fetched
-in the browser with no persistent or RSC data cache. Public GET handlers are
-also dynamic and uncached. Do not static-export this application: its gateway
-requires a Node runtime. An edge proxy must pass both UI deep links and public
-GET routes to Next, without HTML fallback for API paths. Future operator access
-uses its separate reviewed session gateway. No public database, signer or RPC
-exposure. See [Next deployment guidance](https://nextjs.org/docs/app/getting-started/deploying).
-
-The current API has no CORS registration; same-origin proxying is the initial
-assumption. A separate API origin needs a future explicit CORS policy or a
-same-origin gateway. Do not use wildcard credentialed CORS or treat CORS as
-authorization. Keep unconditional `trustProxy` disabled; any future trusted proxy
-list must be narrow and tested against spoofed forwarding headers. With today's
-default IP handling, requests behind one proxy can share its 120/minute budget.
-Measure this before public rollout. Multiple API workers also need a reviewed
-shared rate-limit/edge strategy; the current in-process limiter is not a cluster
-quota.
-
-The Next gateway also means API callers share its IP rate budget today; it does
-not forward X-Forwarded-For or enable API proxy trust. Public deployment must
-address that measured limitation in Phase 7 rather than asserting per-user
-quotas behind the gateway.
-
-Use reproducible locked builds and immutable hashed framework assets; do not
-cache trace pages or public API responses at the edge. HTTPS/CSP configuration
-is a Phase 7 deployment task. There are no third-party scripts or external
-font/image requests in Phase 1. Treat UI and API release hashes as a compatible
-pair, verify deep links, 404/429 forwarding and revocation, and retain prior
-Node builds for rollback. Staging
-must keep broadcast disabled; enabling production operator writes is a later,
-explicit operational step. This specification deploys nothing.
-
-## Threat model and testing
-
-| Boundary/threat | Required control and limitation |
-| --- | --- |
-| Untrusted browser/QR to UI | Validate IDs/origin/scheme; escape all labels; no HTML injection or open redirects. |
-| UI to public API | API publication gate is authoritative; identical missing/unpublished 404; no enumeration or bearer credentials. |
-| Public data to document/relationship data | Render only allowlisted fields; no document fetching or hidden endpoint reconstruction. |
-| Consumer to operator boundary | Separate clients/bundles and gateway; API still checks tenant/scopes; UI visibility grants no permission. |
-| Operator to signer/chain | Server-held credentials and safety checks; simulation, confirmation, stable idempotency and explicit recovery. |
-| Indexer/API to displayed provenance | Indexed data can lag; a recorded hash/claim does not independently prove physical authenticity or document truth. |
-| Unpublication/cache | No persistent provenance cache; revalidate and clear on 404; previously viewed data cannot be recalled from a user's memory. |
-| Hosting/proxy/supply chain | TLS, CSP, path routing, reviewed proxy trust, dependency lock/audit and secret-free public builds. |
-
-UI tests should use synthetic IDs and HTTP fixtures: no real operator tokens,
-keys, live Besu, signing, or broadcasts. Phase 1 uses
-[Vitest](https://nextjs.org/docs/app/guides/testing/vitest) for validators,
-client and GET gateway behavior, and
-[Playwright](https://nextjs.org/docs/app/guides/testing/playwright) against the
-production Next build for browser deep links, state transitions, axe
-accessibility checks, clipboard/keyboard interactions and network assertions.
-An isolated HTTP fixture server also tests real gateway round trips. Fixtures cover nullable labels, closed entities,
-empty history, event IDs above `2^53`, unsigned-64-bit cursors, changing publication
-visibility, aborts, slow responses, 404/400/429, unavailable API and invalid shapes.
-Assert zero public Authorization headers and zero document/operator/write/RPC
-requests. QR tests cover forbidden schemes, unexpected origins, extra segments,
-query/fragment credentials, camera denial and track cleanup.
-
-Future operator workflow tests mock simulation/broadcast responses, double-clicks,
-timeouts, same-key recovery, changed-payload conflicts, pending/failed/confirmed
-states and indexer lag. Hosted UI CI remains deterministic with mocked API calls.
-The API's DB-backed public integration test stays an explicit local test using
-temporary publication rows and cleanup; hosted root CI runs only its offline
-verifier. Before rollout, perform keyboard/screen-reader/mobile review and load
-tests for history query scans, rate budgets and proxy behavior. No additional
-publication-table index or migration is needed for the current composite-key
-gate; future history optimization should follow measured query plans.
+The API integration test creates a disposable MySQL database and local Hardhat
+contract. It exercises independent signup, actual writes, cross-producer receipt,
+stale/idempotent retries, holder-only close, terminal guards, publication/privacy,
+disabled broadcasts and repeatable projection. Separate live checks verified
+the Pi supply chain and actual local browser login/tracking. Broader manual
+screen-reader review, account recovery/MFA, arbitrary document uploads and
+production load/fault evaluation remain in the roadmap.
