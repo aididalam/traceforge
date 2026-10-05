@@ -91,10 +91,9 @@ Demo account credentials are only in the owner-only local file
 `~/.traceforge/secrets/direct-claim-demo-accounts.json`.
 
 Retired sandbox keys/tokens, the old signer map and two pre-reset SQL backups
-were moved intact into an owner-only `~/.traceforge/retired/` archive. Permanent
-credential/backup deletion was rejected by automatic approval review; the old
-mounted chain data and live database were deleted as authorized. Archived files
-are outside the active configuration and can be recovered if needed.
+were permanently deleted following explicit user approval. The temporary archive
+was removed. Active deployer credentials, the three new business wallets and
+demo login details were preserved outside Git.
 
 These terminal processes are not installed as reboot-persistent services. HTTPS
 hosting, process supervision, account recovery, shared sessions and load/fault
