@@ -96,10 +96,13 @@ The entity response is the complete current public allowlist:
 | `closed` | Boolean terminal flag, independent of the state label. |
 | `createdAt`, `closedAt` | Decimal strings containing Unix seconds; `closedAt` can be null. |
 
-Render labels as plain text, with a hash fallback for null labels. Provide
-accessible copy actions and full-value expansion for abbreviated hashes. Convert
-entity timestamps only after range validation; preserve the original string if
-it cannot be represented as a browser date. Do not invent product names,
+Consumer wording uses product tracking/history, current status and current
+holder. Translate known platform event terms into familiar words, space
+CamelCase business labels, and render all labels as plain text. Unknown status
+names use “Status name unavailable”; type names fall back to “Product tracking”.
+Retain the original identifiers/hashes in closed reference sections with copy
+actions. Timestamp dates use UTC after range validation; “Date unavailable”
+keeps an unrepresentable original value in expanded references. Do not invent product names,
 descriptions, certificate claims, custodian names, or tenant branding from hashes.
 
 History returns `{ tenantId, entityId, entity, events, page }`; `entity` is the
@@ -128,9 +131,11 @@ contract. Publishing an entity grants no document access to consumers.
 On a single-ID route, resolve the public ID first, then fetch detail and the
 first history page without automatic write effects. Refresh/restoration resolves
 the ID again. Both subsequent reads retain their own publication gate. Use
-event ID as the timeline key; display events in API order, oldest first. Show
-event name, available semantic labels/hashes, block number, transaction hash,
-and available metadata/evidence hashes. Do not assume events alternate in any
+event ID as the timeline key; display events in API order, oldest first. The
+timeline uses familiar update titles and status labels, with local positions
+such as “UPDATE 1”. Saved event IDs, block/transaction references and
+metadata/evidence hashes remain available in closed “Update references” sections.
+Do not assume events alternate in any
 particular pattern, merge distinct events, or reconstruct hidden relationships.
 There is no public explorer URL configured, so transaction hashes are copyable
 text; external explorer links require a future reviewed configuration.
@@ -151,11 +156,11 @@ Offer an explicit refresh; do not describe a partial timeline as complete.
 | State | Required UI behavior |
 | --- | --- |
 | Loading | Announce progress; use stable placeholders; cancel obsolete requests. |
-| 200 with empty history | Show entity detail and an empty-public-history message. |
-| 404 | Show one “Public trace unavailable” state for missing and unpublished entities; clear loaded detail/history and offer no existence probe. |
+| 200 with empty history | Show product detail and “No updates yet”. |
+| 404 | Show one “Product history unavailable” state for missing and unpublished entities; clear loaded detail/history and offer no existence probe. |
 | 400 | Show invalid link/query or contract error; do not retry automatically. |
 | 429 | Honor `Retry-After`, disable immediate retry/load-more, and show when a retry is possible. |
-| Network timeout, 5xx, invalid response | Show API unavailable with explicit retry; preserve a QR/link input without claiming fresh provenance. |
+| Network timeout, 5xx, invalid response | Show “Product tracking is temporarily unavailable” with explicit retry, without claiming fresh provenance. |
 | 401/403 from public read | Treat as configuration/contract failure; never prompt for an operator token. |
 
 Respect `Cache-Control: no-store`. Keep public data in transient page memory;
