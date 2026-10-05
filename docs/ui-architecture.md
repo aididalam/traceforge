@@ -29,17 +29,19 @@ CI uses Node 22. This follows the user's Next.js requirement and the framework's
 [server/client component](https://nextjs.org/docs/app/getting-started/server-and-client-components)
 boundaries. No browser blockchain SDK is needed.
 
-`src/app/trace/[tenantId]/[entityId]/page.tsx` produces a dynamic loading shell;
+`src/app/track/[trackingId]/page.tsx` and the compatible
+`src/app/trace/[tenantId]/[entityId]/page.tsx` produce dynamic loading shells;
 `src/components/use-trace.ts` owns transient browser request state.
 `src/lib/public-client.ts` reads and validates the public API contract.
-`src/lib/public-gateway.ts` is imported only by the two App Router public GET
+`src/lib/public-gateway.ts` is imported only by the App Router public GET
 handlers (and unit tests). Shared accessible components live in
 `src/components/`. A future operator feature tree/client stays separate;
 public bundles must not import operator credentials or signing code.
 
 ## Public page and QR contract
 
-The UI route is `/trace/:tenantId/:entityId`. Both IDs are bytes32 values matching
+The canonical UI route is `/track/:trackingId`. The original
+`/trace/:tenantId/:entityId` remains compatible. All IDs are bytes32 values matching
 `^0x[0-9a-fA-F]{64}$`; normalize to lowercase after validation. Validate route
 parameters before sending a request. Invalid links get a local invalid-link
 state and no API request. Encode path segments when constructing URLs.
@@ -47,7 +49,7 @@ state and no API request. Encode path segments when constructing URLs.
 A generated QR payload is exactly a normal HTTPS URL:
 
 ```text
-https://traceforge.example/trace/<tenantId>/<entityId>
+https://traceforge.example/track/<trackingId>
 ```
 
 The hostname above is a reserved example, not an existing deployment. The
@@ -56,9 +58,17 @@ adds credentials, private identifiers, signed data, query parameters, or fragmen
 An identifier/URL is not permission: publication is checked by the API on every
 read, and an unpublished entity's QR can remain valid while returning 404.
 
-The public client calls only the existing endpoints:
+The global public Tracking ID resolves to a tenant/entity pair through a
+registry with a global primary key and a unique pair constraint. Entity IDs
+alone remain tenant-scoped. IDs survive unpublication/republication, but every
+lookup still joins publication and current entity state. See
+[registry design and activation](public-tracking.md). Migration 005 is prepared,
+not applied to the live DB under the current temporary-write-only restriction.
+
+The public client calls only these endpoints:
 
 ```text
+GET /public/v1/tracking/:trackingId
 GET /public/v1/tenants/:tenantId/entities/:entityId
 GET /public/v1/tenants/:tenantId/entities/:entityId/history
     ?limit=50&afterEventId=<decimal-string>
@@ -113,7 +123,9 @@ contract. Publishing an entity grants no document access to consumers.
 
 ## Timeline and request state
 
-Fetch detail and the first history page without automatic write effects. Use
+On a single-ID route, resolve the public ID first, then fetch detail and the
+first history page without automatic write effects. Refresh/restoration resolves
+the ID again. Both subsequent reads retain their own publication gate. Use
 event ID as the timeline key; display events in API order, oldest first. Show
 event name, available semantic labels/hashes, block number, transaction hash,
 and available metadata/evidence hashes. Do not assume events alternate in any
@@ -233,8 +245,9 @@ checks supplement keyboard and screen-reader review.
 
 QR generation (future) converts the validated public URL into an image/SVG plus
 printable text; it does not publish the entity or embed API data. QR scanning
-(future) decodes locally, validates HTTPS, an approved origin, exact path and two
-IDs, rejects credentials/query/fragment/other schemes, and navigates to the
+(future) decodes locally, validates HTTPS, an approved origin, exact `/track/`
+path and one Tracking ID (or a compatible two-ID link), rejects
+credentials/query/fragment/other schemes, and navigates to the
 public page. Treat scans as untrusted input, never as instructions to call an
 arbitrary URL. Provide manual URL/ID entry when camera access is denied.
 Request camera permission only after user action, stop tracks on exit, and do
@@ -270,7 +283,7 @@ required at production runtime; development defaults to `http://127.0.0.1:3000`.
 HTTPS is required for non-loopback upstreams; HTTP loopback is allowed for a
 private colocated API. UI dev/start uses port 3100 to keep API port 3000 separate.
 
-By default, browser requests go to two same-origin Next GET handlers with the
+By default, browser requests go to fixed same-origin Next GET handlers with the
 exact public API paths. The gateway forwards only fixed public GET requests to
 the configured upstream, with fresh Accept headers, no cookies/Authorization,
 no redirects and a ten-second timeout. It validates the public response
@@ -279,8 +292,8 @@ allowlists again and returns sanitized errors, `Retry-After` for 429, and
 Set-Cookie/private error bodies. It has no generic proxy, login, operator,
 document, DB or RPC route. POST to the public handlers returns 405.
 
-Run the Next production Node server behind HTTPS. The `/trace/...` route is
-dynamic and renders only a loading shell on the server; provenance is fetched
+Run the Next production Node server behind HTTPS. The `/track/...` and
+`/trace/...` routes are dynamic and render only a loading shell on the server; provenance is fetched
 in the browser with no persistent or RSC data cache. Public GET handlers are
 also dynamic and uncached. Do not static-export this application: its gateway
 requires a Node runtime. An edge proxy must pass both UI deep links and public

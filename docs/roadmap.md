@@ -20,9 +20,9 @@ the end-user product is complete. The current four validators share one Pi.
 
 | Phase | Deliverable | Completion evidence | Status |
 | --- | --- | --- | --- |
-| 1 | Public web UI foundation (Next.js) | `/trace/:tenantId/:entityId`, validated token-free API client, safe timeline/cursors, loading/404/429/unavailable states, mobile/keyboard/accessibility tests, production build and CI gate. | Complete locally; remote publication pending |
+| 1 | Public web UI foundation (Next.js) | `/track/:trackingId` and compatible `/trace/:tenantId/:entityId`, validated token-free API client, safe timeline/cursors, loading/404/429/unavailable states, mobile/keyboard/accessibility tests, production build and CI gate. | Complete locally; tracking migration/service activation and remote publication pending |
 | 2 | QR generation and scanning | Canonical HTTPS URL payload, printable labels, approved-origin scanner/manual fallback, camera lifecycle and malicious-payload tests; future `qr` component. | Planned |
-| 3 | Operator access and dashboard | Reviewed login/session gateway, tenant/organization/scope enforcement, authenticated read views and safe read-only operation-status API; no browser signing or bundled bearer credentials. | Planned |
+| 3 | Operator access and dashboard | Basic account/invitation and organization access, reviewed login/session gateway, tenant/organization/scope enforcement, authenticated read views and safe read-only operation-status API; no browser signing or bundled bearer credentials. | Planned |
 | 4 | Metadata and evidence workflow | Schema validation, canonical hashing, private document storage/import/upload, authorized resolution and retention. Any public document access needs an explicit separate publication policy. | Planned |
 | 5 | Operator business workflows | Entity/trace/state/metadata/link/close UI, two-step custody, simulate → confirm → stable idempotency → broadcast → recovery; pending/failed/confirmed/indexer-lag behavior. | Planned |
 | 6 | Onboarding and business configuration | Tenant/organization/wallet/role/capability administration, semantics/workflow setup, missing administrative APIs and isolation tests. | Planned |
@@ -78,3 +78,13 @@ No push, remote repository creation, real signer operation, deployment or chain
 broadcast is part of Phase 1. Actual immutable writes in later phases require
 the project's explicit checkpoint and successful preflight/simulation. Existing
 contract deployment and applied migration 004 are preserved.
+
+## Single-ID tracking addition — 2026-10-05
+
+The public UI now accepts one Tracking ID and uses `/track/:trackingId` as the
+canonical consumer/QR URL. A separate registry maps it to the on-chain
+tenant/entity pair. Existing links remain compatible; publication gates and
+private-document boundaries are preserved. Migration 005 is prepared and
+verified with temporary MySQL tables; permanent DB changes/service activation
+remain pending under the current DB restriction. See
+[identity, verification and activation details](public-tracking.md).
