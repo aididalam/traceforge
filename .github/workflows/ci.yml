@@ -27,6 +27,7 @@ jobs:
             api/package-lock.json
             indexer/package-lock.json
             contracts/package-lock.json
+            ui/package-lock.json
 
       - name: Verify submodule integrity
         shell: bash
@@ -57,6 +58,20 @@ jobs:
           npm ci
           npm run typecheck
           npm run verify:production-build
+          npm audit --omit=dev --audit-level=high
+
+      - name: Verify public UI
+        working-directory: ui
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          TRACEFORGE_BROADCAST_ENABLED: "false"
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+          npm test
+          npx playwright install --with-deps chromium
+          npm run test:e2e
           npm audit --omit=dev --audit-level=high
 
       - name: Verify contracts
