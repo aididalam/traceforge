@@ -66,6 +66,11 @@ public ID. Original tenant/entity links remain compatible. The registry
 migration is prepared and temporarily tested, pending live DB/service
 activation. See [single-ID tracking and activation](docs/public-tracking.md).
 
+The public page shows shared product information, the current business holder,
+and dated supply history. Approved names replace technical IDs in the main view;
+IDs remain in expandable references. See [public display details](docs/public-product-details.md)
+for the reviewed-field publication policy and pending migration 006 activation.
+
 The first delivery supports a safe public trace page, lookup and timeline.
 QR tools and authenticated operator workflows are subsequent phases. See the
 [numbered roadmap](docs/roadmap.md) and [UI architecture](docs/ui-architecture.md)

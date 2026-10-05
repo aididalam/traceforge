@@ -90,7 +90,9 @@ The entity response is the complete current public allowlist:
 | `entityType`, `entityTypeLabel` | Type hash and nullable display label. |
 | `metadataHash` | Recorded metadata hash; no document body or download is implied. |
 | `currentState`, `currentStateLabel` | Current indexed state hash and nullable label. |
-| `currentCustodian` | Organization bytes32 ID; no wallet address or public organization name is supplied. |
+| `currentCustodian` | Organization bytes32 ID; retain in closed reference details. |
+| `productInfo` | Nullable, separately approved product name/description and bounded label/value fields. |
+| `currentHolder` | Business `{ id, name, type }`; name/type can be null unless approved for this product. |
 | `closed` | Boolean terminal flag, independent of the state label. |
 | `createdAt`, `closedAt` | Decimal strings containing Unix seconds; `closedAt` can be null. |
 
@@ -110,19 +112,24 @@ Each event contains only:
 ```text
 eventId, eventName, blockNumber, transactionHash, transactionIndex, logIndex,
 eventType, eventTypeLabel, stateAfter, stateAfterLabel,
-linkType, linkTypeLabel, metadataHash, evidenceHash
+linkType, linkTypeLabel, metadataHash, evidenceHash,
+occurredAt, organization, transfer
 ```
 
 `eventId` and `blockNumber` are decimal strings. Keep them as strings in JSON
 and state; use `BigInt` only for comparison, never convert cursors to JS numbers.
 `transactionIndex` and `logIndex` are integers. Semantic/hash fields can be null.
-Event timestamps, actor/role/wallet information, raw arguments, and document
-bodies are absent. Do not manufacture event dates from block heights or try to
-resolve hashes through the authenticated document API.
+`occurredAt` is nullable Unix seconds taken from the event's actual timestamp
+argument. `organization` and transfer `from`/`to` objects contain business IDs
+and separately approved display names/types. Actor wallets, roles, raw arguments
+and private document bodies remain absent. Do not manufacture event dates from
+block heights or resolve hashes through the authenticated document API.
 
-No metadata or evidence document body is public unless a future, explicit API
-contract exposes it. The current authenticated document endpoint is not such a
-contract. Publishing an entity grants no document access to consumers.
+Product display details have an explicit separate publication contract in
+[public product details](public-product-details.md). Publishing an entity alone
+grants no document access. Full metadata and evidence documents remain private;
+approved display snapshots are bound to their current indexed references and
+suppressed when those references change.
 
 ## Timeline and request state
 
@@ -130,8 +137,11 @@ On a single-ID route, resolve the public ID first, then fetch detail and the
 first history page without automatic write effects. Refresh/restoration resolves
 the ID again. Both subsequent reads retain their own publication gate. Use
 event ID as the timeline key; display events in API order, oldest first. The
-timeline uses familiar update titles and status labels, with local positions
-such as “UPDATE 1”. Saved event IDs, block/transaction references and
+page shows shared product information and current business name before supply
+history. The timeline uses familiar update titles, UTC dates/times and business
+names, with local positions such as “UPDATE 1”. Missing names use “Business name
+not shared”. Transfer requests never imply receipt or change the current holder.
+Saved event IDs, block/transaction references and
 metadata/evidence hashes remain available in closed “Update references” sections.
 Do not assume events alternate in any
 particular pattern, merge distinct events, or reconstruct hidden relationships.

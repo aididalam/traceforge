@@ -50,7 +50,7 @@ with a fabricated live record.
 ## Phase 1 verification — 2026-10-05
 
 - Locked dependency installation (`npm ci`) succeeded with Node 22.
-- Latest UI checks: typecheck, production Next build, 17 unit tests and 38
+- Latest UI checks: typecheck, production Next build, 18 unit tests and 42
   browser checks passed. Browser projects are desktop Chromium and Pixel 7
   Chromium; the latter is an emulated profile, not a physical-device test.
 - Browser checks include a real Next/public-fixture gateway round trip,
@@ -62,7 +62,10 @@ with a fabricated live record.
 - `npm run audit:production` reported zero vulnerabilities.
 - API offline public discovery/tracking checks, temporary MySQL tracking tests
   and root ops/monitoring asset checks passed. The deployed contract and applied
-  migration 004 are preserved; migration 005 is prepared but not applied live.
+  migration 004 are preserved; migrations 005 and 006 are prepared but not applied live.
+- Public product presentation checks passed offline and against temporary
+  MySQL fixtures: reviewed product details/business names, all event dates,
+  transfer attribution, stale-reference privacy and unchanged live data.
 - The hosted workflow includes the UI gate. Local checks passed; a hosted run
   remains separate evidence. Public HTTPS deployment and shared-proxy rate-budget
   validation remain pending. Current live data may be unpublished and correctly
@@ -88,3 +91,15 @@ private-document boundaries are preserved. Migration 005 is prepared and
 verified with temporary MySQL tables; permanent DB changes/service activation
 remain pending under the current DB restriction. See
 [identity, verification and activation details](public-tracking.md).
+
+## Readable product details addition — 2026-10-05
+
+Product information now precedes current status/holder and dated supply history.
+Approved business names replace hex summaries; hex IDs remain in expandable
+references. All public event timestamps come from their recorded event arguments.
+Migration 006 and an explicit public-details CLI prepare separately reviewed
+display fields without publishing complete private documents. Metadata-reference
+changes hide stale display details until reviewed again. See
+[public details, tests and activation](public-product-details.md).
+This is a focused consumer-view improvement; the full operator document/upload
+workflow in phase 4 remains planned. Short-link/Tracking-ID resolution is unchanged.

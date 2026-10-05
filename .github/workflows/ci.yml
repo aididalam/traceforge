@@ -50,6 +50,7 @@ jobs:
           npm run verify:token-expiry
           npm run verify:public-discovery
           npm run verify:public-tracking
+          npm run verify:public-presentation
           npm run verify:provenance-schema
           npm audit --omit=dev --audit-level=high
 
