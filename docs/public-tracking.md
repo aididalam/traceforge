@@ -7,8 +7,7 @@ https://traceforge.example/track/<trackingId>
 ```
 
 `traceforge.example` is a reserved example. The real site origin is deployment
-configuration. The home page accepts a single Tracking ID, an approved-origin
-trace link, or the original tenant/entity pair. Existing
+configuration. The home page accepts only a single Tracking ID. Existing
 `/trace/:tenantId/:entityId` links continue to work.
 
 ## Identity and visibility

@@ -40,7 +40,9 @@ public bundles must not import operator credentials or signing code.
 
 ## Public page and QR contract
 
-The canonical UI route is `/track/:trackingId`. The original
+The home page has one Tracking ID input and a submit button. It accepts a
+bytes32 Tracking ID; URL and tenant/entity entry modes are absent. The
+canonical UI route is `/track/:trackingId`. The original
 `/trace/:tenantId/:entityId` remains compatible. All IDs are bytes32 values matching
 `^0x[0-9a-fA-F]{64}$`; normalize to lowercase after validation. Validate route
 parameters before sending a request. Invalid links get a local invalid-link
