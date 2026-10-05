@@ -45,7 +45,10 @@ jobs:
           npm ci
           npm run typecheck
           npm run verify:production-build
+          npm run verify:security-hardening
+          npm run verify:token-expiry
           npm run verify:provenance-schema
+          npm audit --omit=dev --audit-level=high
 
       - name: Verify indexer
         working-directory: indexer
@@ -53,6 +56,7 @@ jobs:
           npm ci
           npm run typecheck
           npm run verify:production-build
+          npm audit --omit=dev --audit-level=high
 
       - name: Verify contracts
         working-directory: contracts
@@ -60,6 +64,7 @@ jobs:
           npm ci
           npm run compile
           npm test
+          npm audit --omit=dev --audit-level=high
 
       - name: Verify chain scripts
         shell: bash
