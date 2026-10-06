@@ -16,7 +16,7 @@ confirmed transactions. Read-only checks against the local running app verified
 aligned product actions, search/filter controls, additional-detail rows, public
 tracking and reflow at 320px.
 
-Businesses add products in their own production workspace. Each product has one Tracking ID and a downloadable QR. Public sharing is an explicit checkbox. Private descriptions never appear in the scan preview or public trace.
+Businesses add products in their own production workspace. Each product has one Tracking ID and a downloadable QR. Public sharing is an explicit checkbox. Private product details never appear in the scan preview or public trace.
 
 Overview shows business statistics and product summaries. To create a product,
 open Products → Add product (`/operator/products/new`). Creation has its own
@@ -26,9 +26,11 @@ The Add product form supports up to 32 additional fields. Operators choose each
 field's name and value, add or remove rows, and use details such as batch number,
 ingredients, size or expiry date without a predefined business schema. Names
 must be unique; names allow 80 characters and text values 1,000 characters.
-The product's name, description and custom fields are saved together as JSON.
+The product name and custom fields are saved together as JSON. There is no
+separate description textarea; add a Description field when needed.
 The exact stored JSON bytes are hashed and that hash is recorded on chain.
-Product details display the custom labels and values as entered. Explicit public
+Product information shows the decoded product name and all saved fields as
+labels and values. Descriptions on older products remain readable. Explicit public
 sharing includes those fields; private products' fields remain unavailable to
 public tracking and unrelated businesses.
 
@@ -40,11 +42,29 @@ operator and public views: full Tracking ID
 `0x89455d20a98680f6039dd75fe05fade79a6cc7ec94cac7ab55a75294b82fcf98`,
 short code `dya3f5kmx1qs`. No contract redeployment or data reset was needed.
 
-`/operator/receive` accepts the Tracking ID, short code, approved tracking link or camera QR. Scanning displays the current holder and open/closed state. The receiver must confirm physical receipt before the contract changes custody. No sender proposal, predetermined recipient, workspace membership or receiving role is needed. The expected custody version rejects stale requests, including after a product returns to a previous holder.
+`/operator/receive` accepts the Tracking ID, short code, approved tracking link or camera QR. Scanning displays the current holder and supply-chain status. The receiver must confirm physical receipt before the contract changes custody. No sender proposal, predetermined recipient, workspace membership or receiving role is needed. The expected custody version rejects stale requests, including after a product returns to a previous holder.
 
 Inventory includes products a business produced, currently holds or previously handled, across all producers. Product history contains the previous/new business, recorded time, transaction and receipt evidence. Hex references are secondary information.
 
-The current holder can close with Sold, Lost, Damaged or Disposed. Other businesses cannot close it. Closed products remain readable and cannot be received again. Customer scans only display history.
+The status badges read **In supply chain** (success) and **Out of supply chain**
+(info). The current holder can choose Remove from supply chain and a reason:
+delivered to customer, lost, damaged or disposed. Removed products remain
+readable and cannot be received again. Customer scans only display history.
+
+Business navigation uses a fixed left sidebar on desktop and a Show menu / Hide
+menu button on mobile. Identical business and workspace names appear once.
+
+Public and operator histories show one action per receive or removal. The
+contract emits an action event and a matching TraceRecorded event for each; the
+API filters only the exact adjacent companion before applying pagination.
+Standalone updates stay visible, and all raw blockchain/indexer logs remain
+available for auditing.
+
+The 2026-10-06 history/sidebar follow-up passed 29 UI unit tests, 80 desktop/mobile
+browser checks and API offline/MySQL regressions for paired events, independent
+updates and exact pagination. Read-only checks of the running app confirmed four
+actions for the existing demonstration product in both operator and public
+views, decoded metadata, the mobile menu and success/info status badges.
 
 Browser credentials stay in an HttpOnly SameSite=Strict cookie. The Next.js server stores the API session credential in memory and forwards only fixed routes. Wallet keys stay in an owner-only configured server directory. Each write is journaled before broadcast, supports idempotent retry and verifies the contract receipt. Confirmed journals clear their serialized transaction.
 
