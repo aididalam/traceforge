@@ -1,6 +1,6 @@
 # Business dashboard
 
-Independent businesses register at `/operator/sign-in`, enter their own business type and sign in with email/password. Suggestions such as manufacturer, transporter or retailer are optional; any business type is supported as text up to 120 characters. A business type describes the business and does not restrict who it can receive products from or grant permission to take over another production workspace.
+Independent businesses register at `/operator/sign-in`, choose or create their business type in a searchable React Select picker and sign in with email/password. Predefined types such as manufacturer, transporter or retailer are optional; enter your own type and select “Use” to add it (up to 120 characters). A business type describes the business and does not restrict who it can receive products from or grant permission to take over another production workspace.
 
 The public tracking pages and business dashboard use locally bundled Bootstrap
 controls and buttons, a system font and a neutral colour palette. Forms have
@@ -48,6 +48,6 @@ The current holder can close with Sold, Lost, Damaged or Disposed. Other busines
 
 Browser credentials stay in an HttpOnly SameSite=Strict cookie. The Next.js server stores the API session credential in memory and forwards only fixed routes. Wallet keys stay in an owner-only configured server directory. Each write is journaled before broadcast, supports idempotent retry and verifies the contract receipt. Confirmed journals clear their serialized transaction.
 
-Staff invitations remain an optional way to join an existing business. They are not required to register an independent business.
+The signup/sign-in page offers independent business registration without an invitation button or activation form. Optional staff-invitation support remains in the API for joining an existing business.
 
 The in-memory Next.js session store currently assumes one UI process. A process restart signs users out; a shared session store is needed before horizontally scaling the UI.
