@@ -13,7 +13,10 @@ DB-only business codes. The [batch quantity specification](batch-quantity-plan.m
 defines the metadata, accounting model, API formats and acceptance criteria.
 Phase 1 is specified; phase 2's contract implementation passes 107 tests and
 isolated API compatibility. See [phase 2 evidence](batch-contract-phase2.md).
-Phase 3 adds typed projections, migrations and API workflows. The running
+Phase 3 implements typed quantity/route projections, migrations, registration,
+partial receipt/removal, business codes and external-ID search. See
+[phase 3 implementation and verification](batch-api-phase3.md).
+Phase 4 adds the UI forms, search and stock views. The running
 deployment still uses the direct-claim whole-product flow described below.
 These upgrade phases do not replace the remaining hosting, administration and
 reliability work in the platform roadmap.

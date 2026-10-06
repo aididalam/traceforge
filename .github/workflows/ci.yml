@@ -64,6 +64,8 @@ jobs:
           npm run verify:public-presentation
           npm run verify:public-short-links
           npm run verify:operator-dashboard
+          npm run verify:product-input
+          npm run verify:public-products
           npm run verify:provenance-schema
           npm audit --omit=dev --audit-level=high
 
@@ -99,7 +101,7 @@ jobs:
           npm test
           npm audit --omit=dev --audit-level=high
 
-      - name: Verify isolated direct-claim integration
+      - name: Verify isolated single and batch integration
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: "33306"

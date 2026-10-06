@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-06",
+  "environment": "Disposable Hardhat chain and MySQL database; no Pi deployment",
+  "passed": true,
+  "checks": [
+    "Independent registration stores and displays an arbitrary business type; the business participates in the same dynamic custody flow.",
+    "Four independent businesses signed up, registered on chain and signed in without invitations.",
+    "Dynamic field labels/values round-trip through stored JSON, operator details and the on-chain metadata hash; invalid or duplicate fields are rejected before storage.",
+    "Scanning does not transfer; explicit receipt changes holder without membership. Retries are idempotent; stale/conflicting claims are rejected.",
+    "Generic production simulation makes no changes; registered singles require quantity-aware removal rather than generic close.",
+    "One business receives products from two independent producers; inventory spans workspaces while unrelated private metadata stays hidden.",
+    "All seven generic mutation simulations reject closed products; retired proposal/accept/cancel routes are absent.",
+    "Distributor closes its current product without Shop role or production membership; non-holder close and receiving a closed product fail.",
+    "Public tracking keeps named holders, product details, dates and short IDs. Private products stay hidden, and sync respects explicit unpublishing.",
+    "Registration validates required IDs/counts before storage; duplicate business IDs remain separate records, with confirmed unique aliases including private registrations and exact paginated public search.",
+    "Partial receipts conserve global quantity, aggregate stock across six independent paths and three holders, preserve return lineage, paginate without changing totals, and reject stale/oversized/self receipts.",
+    "One 100,000-item removal produces one event; owner-only removals preserve written on-chain reasons and category totals, and the batch closes only after all routes reach zero.",
+    "Simultaneous receivers of the same source version cannot overdraw stock: exactly one transaction confirms.",
+    "Projection is repeatable and rebuildable, rejects inconsistent quantity events atomically, and quantity queries are isolated by contract deployment.",
+    "Business-code reservations support custom values, reject conflicts, reuse existing reservations, roll back safely and grow from one character to two, then three.",
+    "Concurrent transactions allocate different automatic business codes and serialize retries for the same business.",
+    "Custom-code signup rejects an occupied code without leaving an account or key file; a free custom code registers successfully.",
+    "Actual migration runners and legacy temporary-table dashboard/public-history integration checks pass on the upgraded schema.",
+    "Projector runs repeatedly without duplicate custody receipts; confirmed journals remove serialized transactions.",
+    "An interrupted prepared write blocks a new transaction for the same business until the original operation is recovered.",
+    "Disabling broadcasts blocks both generic and operator writes without creating journal entries or changing chain state."
+  ],
+  "confirmedTransactions": 36,
+  "failedConcurrentTransactions": 1,
+  "additionalChecks": [
+    "Existing-business automatic migration backfill assigns missing codes, preserves custom codes and remains idempotent across repeated migration/CLI runs."
+  ]
+}

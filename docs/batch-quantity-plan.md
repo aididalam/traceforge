@@ -207,10 +207,12 @@ per action and applies cursor pagination before returning a bounded page.
 
 ## API specification
 
-The paths below extend the business API. Exact response schemas and fixed Next.js
-gateway routes will be implemented in phase 3, with compatibility checks for
-existing clients. Every state-changing operation retains an idempotency key,
-simulation, journal-before-broadcast and verified transaction receipt.
+The paths below extend the business API. Phase 3 implements the API routes and
+response schemas; phase 4 adds the matching fixed Next.js gateway routes and UI
+client contracts. The current UI remains on the running legacy deployment until
+those consumers and activation checks are ready. Every state-changing operation
+retains an idempotency key, simulation, journal-before-broadcast and verified
+transaction receipt.
 
 ### Registration
 

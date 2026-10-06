@@ -79,7 +79,8 @@ and [fresh-chain validation](docs/direct-claim-upgrade.md).
 
 The next upgrade is specified in the [product ID and batch quantity plan](docs/batch-quantity-plan.md):
 business references, quantities, multiple supply routes, partial removals and
-search. Phase 1 defines the design and [phase 2 implements/tests the contract](docs/batch-contract-phase2.md).
+search. Phase 1 defines the design, [phase 2 implements/tests the contract](docs/batch-contract-phase2.md),
+and [phase 3 implements/tests the indexer and API](docs/batch-api-phase3.md).
 The current deployment still uses whole-product receipt/removal until the
 indexer, API and UI upgrade is ready and activated.
 
