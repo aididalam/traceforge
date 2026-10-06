@@ -11,7 +11,9 @@ optional quantity (default one), partial batch receipt/removal across multiple
 holders and routes, on-chain removal reasons, external-ID search and optional
 DB-only business codes. The [batch quantity specification](batch-quantity-plan.md)
 defines the metadata, accounting model, API formats and acceptance criteria.
-Phase 1 is specified; phase 2 is the contract implementation. The running
+Phase 1 is specified; phase 2's contract implementation passes 107 tests and
+isolated API compatibility. See [phase 2 evidence](batch-contract-phase2.md).
+Phase 3 adds typed projections, migrations and API workflows. The running
 deployment still uses the direct-claim whole-product flow described below.
 These upgrade phases do not replace the remaining hosting, administration and
 reliability work in the platform roadmap.

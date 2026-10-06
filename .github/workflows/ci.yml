@@ -94,6 +94,8 @@ jobs:
         run: |
           npm ci
           npm run compile
+          node scripts/contract-report.mjs
+          python3 ../ops/refresh-contract-abi.py --check
           npm test
           npm audit --omit=dev --audit-level=high
 

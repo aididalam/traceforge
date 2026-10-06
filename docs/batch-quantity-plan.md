@@ -1,17 +1,18 @@
 # Product IDs, batch quantities and supply routes
 
 Updated 2026-10-06. Phase 1 specifies the next product workflow. This document
-describes planned behaviour; the running deployment still has one custodian per
-product and whole-product receipt/removal. Phases 2–6 implement, test and activate
-the design below.
+describes the target behaviour; the running deployment still has one custodian
+per product and whole-product receipt/removal. Phase 2's contract is implemented
+and tested; phases 3–6 integrate, test and activate the design below. See the
+[contract implementation and validation](batch-contract-phase2.md).
 
 ## Delivery phases
 
 | Phase | Deliverable | Status |
 | --- | --- | --- |
 | 1 | Registration metadata, route/accounting model and API specification | Specified here; implementation not yet activated |
-| 2 | Contract quantity accounting, route receipt and reasoned removal | Next |
-| 3 | Indexer projections, database migrations, search, aliases and API | Planned |
+| 2 | Contract quantity accounting, route receipt and reasoned removal | Implemented; 107 contract tests and isolated compatibility passed; not deployed |
+| 3 | Indexer projections, database migrations, search, aliases and API | Next |
 | 4 | Next.js registration, receipt, removal and tracking views | Planned |
 | 5 | Contract, disposable integration and desktop/mobile acceptance | Planned |
 | 6 | Pi deployment, migration/reseed, real operations and documentation | Planned |
@@ -165,6 +166,10 @@ They do not need a batch quantity input or multiple-holder UI. Reason defaults
 and explanations apply to single removal too. The new contract's legacy
 whole-product claim/close entry points must explicitly reject batches, so a
 caller cannot bypass partial-quantity accounting.
+
+New registered singles also use reasoned `removeProduct` on chain. Legacy
+`closeEntity` remains for generic entities and rejects these registrations;
+the HTTP `/close` compatibility path dispatches to the new single removal.
 
 ## Contract and indexer changes
 
