@@ -1,6 +1,20 @@
 # Business dashboard
 
-Independent businesses register at `/operator/sign-in`, choose a business type and sign in with email/password. A business type describes the business; it does not grant permission to take over a production workspace.
+Independent businesses register at `/operator/sign-in`, enter their own business type and sign in with email/password. Suggestions such as manufacturer, transporter or retailer are optional; any business type is supported as text up to 120 characters. A business type describes the business and does not restrict who it can receive products from or grant permission to take over another production workspace.
+
+The public tracking pages and business dashboard use locally bundled Bootstrap
+controls and buttons, a system font and a neutral colour palette. Forms have
+visible labels, standard checkbox sizes and consistent spacing on desktop and
+mobile. Product creation stays in Products → Add product; Overview shows the
+business summary. Activity shows the progress of product updates.
+
+The 2026-10-06 business-type and UI cleanup passed 29 UI unit tests and the full
+78 desktop/mobile browser checks. The final form-label and page-title changes
+also passed all 24 dashboard browser checks. Disposable API/chain integration
+verified custom-type registration, storage and dynamic receipt/close with 14
+confirmed transactions. Read-only checks against the local running app verified
+aligned product actions, search/filter controls, additional-detail rows, public
+tracking and reflow at 320px.
 
 Businesses add products in their own production workspace. Each product has one Tracking ID and a downloadable QR. Public sharing is an explicit checkbox. Private descriptions never appear in the scan preview or public trace.
 
