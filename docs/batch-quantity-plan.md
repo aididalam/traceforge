@@ -5,7 +5,8 @@ describes the target behaviour; the running deployment still has one custodian
 per product and whole-product receipt/removal. Phase 2's contract is implemented
 and tested; phases 3–4 implement the API and UI; phases 5–6 validate and activate the design below. See the
 [contract implementation and validation](batch-contract-phase2.md),
-[API implementation](batch-api-phase3.md) and [UI implementation](batch-ui-phase4.md).
+[API implementation](batch-api-phase3.md), [UI implementation](batch-ui-phase4.md)
+and [assembled acceptance](batch-integration-phase5.md).
 
 ## Delivery phases
 
@@ -15,7 +16,7 @@ and tested; phases 3–4 implement the API and UI; phases 5–6 validate and act
 | 2 | Contract quantity accounting, route receipt and reasoned removal | Implemented; 107 contract tests and isolated compatibility passed; not deployed |
 | 3 | Indexer projections, database migrations, search, aliases and API | Implemented; isolated integration and replay passed; not activated |
 | 4 | Next.js registration, receipt, removal and tracking views | Implemented; 43 unit and 104 browser tests passed; not activated |
-| 5 | Contract, disposable integration and desktop/mobile acceptance | Planned |
+| 5 | Contract, disposable integration and desktop/mobile acceptance | Passed; 131 confirmed transactions, 39 accounting checkpoints and full rebuilds; not activated |
 | 6 | Pi deployment, migration/reseed, real operations and documentation | Planned |
 
 This sequence extends the existing delivery roadmap. HTTPS hosting, account

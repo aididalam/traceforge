@@ -18,7 +18,11 @@ partial receipt/removal, business codes and external-ID search. See
 [phase 3 implementation and verification](batch-api-phase3.md).
 Phase 4 implements UI registration, search/source selection, stock summaries and
 reasoned removal; 43 unit and 104 desktop/mobile browser checks pass. See
-[Phase 4 implementation and verification](batch-ui-phase4.md). The running
+[Phase 4 implementation and verification](batch-ui-phase4.md).
+[Phase 5 assembled acceptance](batch-integration-phase5.md) passes with real
+desktop/mobile browser operations, 131 confirmed transactions, 39 accounting
+checkpoints and complete projection rebuilds. Phase 6 activation remains.
+The running
 deployment still uses the direct-claim whole-product flow described below.
 These upgrade phases do not replace the remaining hosting, administration and
 reliability work in the platform roadmap.

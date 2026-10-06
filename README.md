@@ -82,9 +82,11 @@ The next upgrade is specified in the [product ID and batch quantity plan](docs/b
 business references, quantities, multiple supply routes, partial removals and
 search. Phase 1 defines the design, [phase 2 implements/tests the contract](docs/batch-contract-phase2.md),
 [phase 3 implements/tests the indexer and API](docs/batch-api-phase3.md),
-and [phase 4 implements/tests the UI](docs/batch-ui-phase4.md).
+[phase 4 implements/tests the UI](docs/batch-ui-phase4.md), and
+[phase 5 validates the assembled system](docs/batch-integration-phase5.md) with
+131 confirmed transactions and real desktop/mobile browser flows.
 The current deployment still uses whole-product receipt/removal until the
-assembled upgrade passes Phase 5 integration and Phase 6 activates it.
+tested upgrade is activated on Pi in Phase 6.
 
 ## Independent businesses and product receipt
 
