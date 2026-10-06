@@ -3,8 +3,9 @@
 Updated 2026-10-06. Phase 1 specifies the next product workflow. This document
 describes the target behaviour; the running deployment still has one custodian
 per product and whole-product receipt/removal. Phase 2's contract is implemented
-and tested; phases 3–6 integrate, test and activate the design below. See the
-[contract implementation and validation](batch-contract-phase2.md).
+and tested; phases 3–4 implement the API and UI; phases 5–6 validate and activate the design below. See the
+[contract implementation and validation](batch-contract-phase2.md),
+[API implementation](batch-api-phase3.md) and [UI implementation](batch-ui-phase4.md).
 
 ## Delivery phases
 
@@ -12,8 +13,8 @@ and tested; phases 3–6 integrate, test and activate the design below. See the
 | --- | --- | --- |
 | 1 | Registration metadata, route/accounting model and API specification | Specified here; implementation not yet activated |
 | 2 | Contract quantity accounting, route receipt and reasoned removal | Implemented; 107 contract tests and isolated compatibility passed; not deployed |
-| 3 | Indexer projections, database migrations, search, aliases and API | Next |
-| 4 | Next.js registration, receipt, removal and tracking views | Planned |
+| 3 | Indexer projections, database migrations, search, aliases and API | Implemented; isolated integration and replay passed; not activated |
+| 4 | Next.js registration, receipt, removal and tracking views | Implemented; 43 unit and 104 browser tests passed; not activated |
 | 5 | Contract, disposable integration and desktop/mobile acceptance | Planned |
 | 6 | Pi deployment, migration/reseed, real operations and documentation | Planned |
 

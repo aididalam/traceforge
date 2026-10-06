@@ -63,7 +63,8 @@ or blockchain changes. See [UI setup and verification](ui/README.md).
 
 Product links can use `/s/<12-character-code>` for sharing; the full
 `/track/<trackingId>` and original tenant/entity links remain compatible.
-The homepage's single Tracking ID field accepts either code or full ID.
+The homepage's single lookup field accepts a short/full Tracking ID or searches
+the product/batch ID printed by a business.
 Registry and dashboard migrations are applied to the fresh local database. See [single-ID tracking](docs/public-tracking.md) and
 [short links and activation](docs/public-short-links.md).
 
@@ -80,9 +81,10 @@ and [fresh-chain validation](docs/direct-claim-upgrade.md).
 The next upgrade is specified in the [product ID and batch quantity plan](docs/batch-quantity-plan.md):
 business references, quantities, multiple supply routes, partial removals and
 search. Phase 1 defines the design, [phase 2 implements/tests the contract](docs/batch-contract-phase2.md),
-and [phase 3 implements/tests the indexer and API](docs/batch-api-phase3.md).
+[phase 3 implements/tests the indexer and API](docs/batch-api-phase3.md),
+and [phase 4 implements/tests the UI](docs/batch-ui-phase4.md).
 The current deployment still uses whole-product receipt/removal until the
-indexer, API and UI upgrade is ready and activated.
+assembled upgrade passes Phase 5 integration and Phase 6 activates it.
 
 ## Independent businesses and product receipt
 

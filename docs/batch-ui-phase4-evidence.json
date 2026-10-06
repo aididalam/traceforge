@@ -1,0 +1,100 @@
+{
+  "phase": 4,
+  "recordedAt": "2026-10-06T07:06:36.280879+00:00",
+  "uiCommit": "351203d173e835d62bf0c225c98935c7e8481366",
+  "uiSourceSha256": "61eef274bfa16987ee1839923e1d02b9a3cf2cbbe2ba048f8550ad7a695b86c3",
+  "status": "implemented_and_verified_not_activated",
+  "runtime": {
+    "node": "22.23.3",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "typescript": "5.9.3",
+    "playwright": "1.63.0"
+  },
+  "checks": {
+    "typecheck": {
+      "result": "passed",
+      "command": "npm run typecheck"
+    },
+    "unit": {
+      "result": "passed",
+      "tests": 43,
+      "files": 3,
+      "command": "npm test"
+    },
+    "productionBuild": {
+      "result": "passed",
+      "distDir": ".next-phase4",
+      "command": "TRACEFORGE_UI_DIST_DIR=.next-phase4 NEXT_TELEMETRY_DISABLED=1 npm run build"
+    },
+    "browser": {
+      "result": "passed",
+      "tests": 104,
+      "profiles": [
+        "desktop Chromium 1440x1100",
+        "Pixel 7 Chromium"
+      ],
+      "elapsedSeconds": 47.4,
+      "command": "TRACEFORGE_UI_DIST_DIR=.next-phase4 npm run test:e2e"
+    },
+    "browserErrors": {
+      "result": "passed",
+      "tests": 24,
+      "profiles": [
+        "desktop",
+        "mobile"
+      ],
+      "pageErrors": 0,
+      "elapsedSeconds": 19.7,
+      "scope": "The 12 new batch scenarios repeated with explicit pageerror assertions."
+    },
+    "accessibility": {
+      "result": "passed",
+      "tags": [
+        "wcag2a",
+        "wcag2aa",
+        "wcag21aa",
+        "wcag22aa"
+      ],
+      "checks": [
+        "axe on new registration, receipt, removal and public batch flows",
+        "no horizontal overflow",
+        "desktop/mobile screenshot review"
+      ]
+    },
+    "existingServices": {
+      "apiHealth": 200,
+      "apiReadiness": 200,
+      "uiHome": 200,
+      "uiSignIn": 200
+    }
+  },
+  "scope": {
+    "apiBackend": "owned synthetic HTTP fixture on port 4202",
+    "nextServer": "isolated production server on port 4178",
+    "liveUi": "previous production build on port 3101",
+    "blockchainWrites": 0,
+    "databaseMigrations": 0,
+    "oldDataDeleted": false,
+    "newPiContractDeployed": false
+  },
+  "features": [
+    "required external ID and default single quantity",
+    "batch registration and optional business-code prefix suggestion",
+    "issued short-code QR and full-ID compatibility",
+    "duplicate reference search and optional origin filter",
+    "bounded source/holder/history pagination",
+    "distinct source receipts and exact version strings",
+    "owned-stock removal with reason and Unicode explanation",
+    "global and owned stock summaries, public reason totals",
+    "frozen idempotent pending-request retries",
+    "publication revocation and revoked-session clearing"
+  ],
+  "logs": {
+    "browser": "/private/tmp/traceforge-phase4-browser-release.log",
+    "browserErrors": "/private/tmp/traceforge-phase4-browser-errors.log",
+    "build": "/private/tmp/traceforge-phase4-build.log"
+  },
+  "nextPhase": 5,
+  "activationPhase": 6
+}

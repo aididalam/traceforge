@@ -16,7 +16,9 @@ isolated API compatibility. See [phase 2 evidence](batch-contract-phase2.md).
 Phase 3 implements typed quantity/route projections, migrations, registration,
 partial receipt/removal, business codes and external-ID search. See
 [phase 3 implementation and verification](batch-api-phase3.md).
-Phase 4 adds the UI forms, search and stock views. The running
+Phase 4 implements UI registration, search/source selection, stock summaries and
+reasoned removal; 43 unit and 104 desktop/mobile browser checks pass. See
+[Phase 4 implementation and verification](batch-ui-phase4.md). The running
 deployment still uses the direct-claim whole-product flow described below.
 These upgrade phases do not replace the remaining hosting, administration and
 reliability work in the platform roadmap.
