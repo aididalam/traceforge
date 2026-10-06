@@ -1,8 +1,20 @@
 # TraceForge remaining delivery phases
 
-Updated 2026-10-05. The goal is a usable multi-tenant traceability platform:
+Updated 2026-10-06. The goal is a usable multi-tenant traceability platform:
 operators record supply-chain activity safely, and consumers inspect explicitly
 published provenance through a normal web/QR experience.
+
+## Batch upgrade starting 2026-10-06
+
+The next six implementation phases add required business product/batch IDs,
+optional quantity (default one), partial batch receipt/removal across multiple
+holders and routes, on-chain removal reasons, external-ID search and optional
+DB-only business codes. The [batch quantity specification](batch-quantity-plan.md)
+defines the metadata, accounting model, API formats and acceptance criteria.
+Phase 1 is specified; phase 2 is the contract implementation. The running
+deployment still uses the direct-claim whole-product flow described below.
+These upgrade phases do not replace the remaining hosting, administration and
+reliability work in the platform roadmap.
 
 ## Already complete
 

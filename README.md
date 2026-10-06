@@ -77,6 +77,11 @@ product creation, QR generation/scanning, direct receipt and holder-only close.
 See the [delivery roadmap](docs/roadmap.md), [UI architecture](docs/ui-architecture.md)
 and [fresh-chain validation](docs/direct-claim-upgrade.md).
 
+The next upgrade is specified in the [product ID and batch quantity plan](docs/batch-quantity-plan.md):
+business references, quantities, multiple supply routes, partial removals and
+search. Phase 1 defines the design; the current deployment still uses whole-product
+receipt/removal until the contract, API and UI upgrade is tested and activated.
+
 ## Independent businesses and product receipt
 
 Businesses register independently, add products in their own workspace and receive products from any producer after physical handover. A scan displays the product; a separate confirmation records receipt and changes the holder. Inventory spans supply chains. The current holder can close tracking as Sold, Lost, Damaged or Disposed. Closed records stay readable and cannot be received again.
