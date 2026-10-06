@@ -6,7 +6,7 @@ published provenance through a normal web/QR experience.
 
 ## Batch upgrade starting 2026-10-06
 
-The next six implementation phases add required business product/batch IDs,
+The completed six implementation phases add required business product/batch IDs,
 optional quantity (default one), partial batch receipt/removal across multiple
 holders and routes, on-chain removal reasons, external-ID search and optional
 DB-only business codes. The [batch quantity specification](batch-quantity-plan.md)
@@ -21,9 +21,12 @@ reasoned removal; 43 unit and 104 desktop/mobile browser checks pass. See
 [Phase 4 implementation and verification](batch-ui-phase4.md).
 [Phase 5 assembled acceptance](batch-integration-phase5.md) passes with real
 desktop/mobile browser operations, 131 confirmed transactions, 39 accounting
-checkpoints and complete projection rebuilds. Phase 6 activation remains.
-The running
-deployment still uses the direct-claim whole-product flow described below.
+checkpoints and complete projection rebuilds.
+[Phase 6 Pi activation](batch-activation-phase6.md) is complete: the new contract,
+fresh database and local API/UI pass 31 real confirmed operations and read-only
+desktop/mobile verification. Retired database/wallet files were removed after
+verified private snapshots. The running deployment uses quantity-aware batch
+routes alongside ordinary single-product custody.
 These upgrade phases do not replace the remaining hosting, administration and
 reliability work in the platform roadmap.
 
@@ -45,7 +48,11 @@ The 2026-10-05 direct-claim upgrade replaces the earlier two-step custody plan.
 The old development ledger and database were reset, the new contract deployed
 on Pi, and all local migrations applied. Historical acceptance notes below
 record earlier milestones; their temporary-write restrictions no longer apply.
-See [the upgrade receipt and live checks](direct-claim-upgrade.md).
+See [the historical direct-claim receipt](direct-claim-upgrade.md).
+The 2026-10-06 batch activation supersedes that deployment. Its separate database
+has indexer migrations 001–006 and API migrations 001–010; the retired database
+is removed. All six batch-upgrade phases are complete, while the platform work
+below remains separate.
 
 | Phase | Deliverable | Current status |
 | --- | --- | --- |
@@ -53,10 +60,10 @@ See [the upgrade receipt and live checks](direct-claim-upgrade.md).
 | 2 | QR download, camera scanning and manual fallback | Implemented in the Next.js UI; separate QR repository optional |
 | 3 | Business registration, login, dashboard and cross-producer inventory | Implemented and activated locally; optional staff invitations retained |
 | 4 | Metadata and evidence workflow | Product/evidence hashing and private storage implemented; arbitrary document uploads, retention policy and additional business schemas remain |
-| 5 | Product business workflows | Create, direct receipt, close and journal statuses implemented; custom trace/state/metadata/link UI and richer interrupted-request recovery remain |
+| 5 | Product business workflows | Create, direct single/batch receipt, partial removal, search and journal statuses implemented; custom trace/state/metadata/link UI and richer interrupted-request recovery remain |
 | 6 | Business configuration and administration | Independent signup registers own wallet/workspace without approval; administrator UI, account recovery/MFA and configurable workflows remain |
 | 7 | Deployment and reliability | Local Pi chain/API/UI and continuous projection running; HTTPS hosting, supervised restart/reboot, load tests, shared sessions and independent validator hosts remain |
-| 8 | End-to-end demonstration and evaluation | Real Producer → Distributor → Shop → Sold demo verified; broader consumer/operator evaluation and performance measurements remain |
+| 8 | End-to-end demonstration and evaluation | Real Producer → two Distributors → Shop, returns, partial removals and single-item flows verified; broader consumer/operator evaluation and performance measurements remain |
 
 ## Phase 1 scope and acceptance
 

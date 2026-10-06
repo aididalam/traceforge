@@ -1,23 +1,23 @@
 # Product IDs, batch quantities and supply routes
 
-Updated 2026-10-06. Phase 1 specifies the next product workflow. This document
-describes the target behaviour; the running deployment still has one custodian
-per product and whole-product receipt/removal. Phase 2's contract is implemented
-and tested; phases 3–4 implement the API and UI; phases 5–6 validate and activate the design below. See the
+Updated 2026-10-06. All six phases of this product workflow are implemented and
+activated locally against the Pi chain. This document specifies the active
+metadata, quantity and route model. See the
 [contract implementation and validation](batch-contract-phase2.md),
 [API implementation](batch-api-phase3.md), [UI implementation](batch-ui-phase4.md)
-and [assembled acceptance](batch-integration-phase5.md).
+and [assembled acceptance](batch-integration-phase5.md), followed by
+[Pi activation and live evidence](batch-activation-phase6.md).
 
 ## Delivery phases
 
 | Phase | Deliverable | Status |
 | --- | --- | --- |
-| 1 | Registration metadata, route/accounting model and API specification | Specified here; implementation not yet activated |
-| 2 | Contract quantity accounting, route receipt and reasoned removal | Implemented; 107 contract tests and isolated compatibility passed; not deployed |
-| 3 | Indexer projections, database migrations, search, aliases and API | Implemented; isolated integration and replay passed; not activated |
-| 4 | Next.js registration, receipt, removal and tracking views | Implemented; 43 unit and 104 browser tests passed; not activated |
-| 5 | Contract, disposable integration and desktop/mobile acceptance | Passed; 131 confirmed transactions, 39 accounting checkpoints and full rebuilds; not activated |
-| 6 | Pi deployment, migration/reseed, real operations and documentation | Planned |
+| 1 | Registration metadata, route/accounting model and API specification | Complete; specified here |
+| 2 | Contract quantity accounting, route receipt and reasoned removal | Complete; 107 contract tests passed; deployed on Pi |
+| 3 | Indexer projections, database migrations, search, aliases and API | Complete; isolated integration/replay passed; activated |
+| 4 | Next.js registration, receipt, removal and tracking views | Complete; 43 unit and 104 browser tests passed; activated |
+| 5 | Contract, disposable integration and desktop/mobile acceptance | Complete; 131 confirmed transactions, 39 accounting checkpoints and full rebuilds |
+| 6 | Pi deployment, migration/reseed, real operations and documentation | Complete; 31 live confirmed transactions, verified backups and desktop/mobile checks |
 
 This sequence extends the existing delivery roadmap. HTTPS hosting, account
 recovery, process supervision and the other remaining platform work are not
@@ -211,8 +211,8 @@ per action and applies cursor pagination before returning a bounded page.
 
 The paths below extend the business API. Phase 3 implements the API routes and
 response schemas; phase 4 adds the matching fixed Next.js gateway routes and UI
-client contracts. The current UI remains on the running legacy deployment until
-those consumers and activation checks are ready. Every state-changing operation
+client contracts. These consumers now run against the quantity deployment.
+Every state-changing operation
 retains an idempotency key, simulation, journal-before-broadcast and verified
 transaction receipt.
 
@@ -408,4 +408,6 @@ Activation verifies actual Producer → two Distributors → Shop receipts and
 partial removals, then compares chain, database, public tracking and business
 inventory. Single-product regression is also exercised. Cleanup follows those
 checks; final deployment receipts, docs and affected submodule commits are
-published together. Phase 1 makes no live chain/database reset or service change.
+published together. Phase 1 made no live chain/database reset or service change.
+Phase 6 completed this sequence on 2026-10-06 without resetting validator data;
+see the [activation receipt](batch-activation-phase6.md).

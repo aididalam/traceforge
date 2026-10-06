@@ -1,8 +1,8 @@
 # Batch contract implementation — phase 2
 
-Completed 2026-10-06 in source and isolated tests. The quantity contract is not
-yet deployed on Pi. Indexer projections, quantity HTTP endpoints and UI controls
-are phases 3–4; live activation remains phase 6.
+Completed 2026-10-06 in source and isolated tests. This milestone records contract
+implementation; the matching consumers and live Pi deployment were subsequently
+completed in [Phase 6 activation](batch-activation-phase6.md).
 
 ## Resulting behaviour
 

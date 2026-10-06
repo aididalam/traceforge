@@ -3,8 +3,9 @@
 Implemented 2026-10-06 in the Next.js `ui/` submodule. This phase consumes the
 [Phase 3 API](batch-api-phase3.md) and follows the
 [quantity and route specification](batch-quantity-plan.md).
-The live Pi deployment still uses the previous whole-product contract and API.
-This UI build is prepared for upgrade activation in Phase 6.
+The upgrade was subsequently activated against Pi in
+[Phase 6](batch-activation-phase6.md). The checks below record the Phase 4 UI
+implementation milestone.
 
 ## Delivered flows
 

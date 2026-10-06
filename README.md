@@ -68,28 +68,34 @@ the product/batch ID printed by a business.
 Registry and dashboard migrations are applied to the fresh local database. See [single-ID tracking](docs/public-tracking.md) and
 [short links and activation](docs/public-short-links.md).
 
-The public page shows shared product information, the current business holder,
+The public page shows shared product information, current business holders,
 and dated supply history. Approved names replace technical IDs in the main view;
 IDs remain in expandable references. See [public display details](docs/public-product-details.md)
 for the reviewed-field publication policy.
 
 The [business dashboard](docs/operator-dashboard.md) supports independent signup,
-product creation, QR generation/scanning, direct receipt and holder-only close.
+product creation, QR generation/scanning, direct receipt and owned-stock removal.
 See the [delivery roadmap](docs/roadmap.md), [UI architecture](docs/ui-architecture.md)
 and [fresh-chain validation](docs/direct-claim-upgrade.md).
 
-The next upgrade is specified in the [product ID and batch quantity plan](docs/batch-quantity-plan.md):
+The activated upgrade follows the [product ID and batch quantity plan](docs/batch-quantity-plan.md):
 business references, quantities, multiple supply routes, partial removals and
 search. Phase 1 defines the design, [phase 2 implements/tests the contract](docs/batch-contract-phase2.md),
 [phase 3 implements/tests the indexer and API](docs/batch-api-phase3.md),
 [phase 4 implements/tests the UI](docs/batch-ui-phase4.md), and
 [phase 5 validates the assembled system](docs/batch-integration-phase5.md) with
 131 confirmed transactions and real desktop/mobile browser flows.
-The current deployment still uses whole-product receipt/removal until the
-tested upgrade is activated on Pi in Phase 6.
+[Phase 6 activates the upgrade on Pi](docs/batch-activation-phase6.md): 31 confirmed
+transactions, four independent businesses, six registrations and verified
+desktop/mobile views. The active contract is
+`0xf286a8f7bbbe4e5f2337e1701524368794de5672` on chain 9009.
+API/UI run locally on ports 3000/3101, using a fresh deployment-specific database.
+The old database and active wallet files were retired after verified backups.
+Try the [million-item batch](http://127.0.0.1:3101/s/e382nq6drb4d) or
+[single item ready to receive](http://127.0.0.1:3101/s/0jx8h77sec5n).
 
 ## Independent businesses and product receipt
 
-Businesses register independently, add products in their own workspace and receive products from any producer after physical handover. A scan displays the product; a separate confirmation records receipt and changes the holder. Inventory spans supply chains. The current holder can close tracking as Sold, Lost, Damaged or Disposed. Closed records stay readable and cannot be received again.
+Businesses register independently, add products in their own workspace and receive products after physical handover. Registration requires the business's product/batch ID; quantity defaults to one. Batches can follow several supply routes, with each receiver selecting a source and amount. Inventory spans supply chains. Only the current owner of stock can remove it, with Sold, Lost, Damaged, Spoiled, Disposed or Other recorded as the reason. The status becomes Out of supply chain when global available quantity reaches zero; historical records remain readable.
 
-The Next.js business UI provides signup, product creation, QR download/camera scanning, receipt confirmation and close actions. Public tracking remains an opt-in view with one Tracking ID or short code, product details, named holders and dated history. See [business dashboard flow](docs/operator-dashboard.md).
+The Next.js business UI provides signup, product creation, QR download/camera scanning, source selection, receipt confirmation and removal actions. Public tracking remains an opt-in view with one Tracking ID or short code, decoded product details, named holders, quantity summaries and dated history. See [business dashboard flow](docs/operator-dashboard.md) and the [current batch activation guide](docs/batch-activation-phase6.md).

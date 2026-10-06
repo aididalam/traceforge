@@ -3,8 +3,8 @@
 Verified 2026-10-06. This phase joins the Phase 2 contract, Phase 3 indexer/API
 and Phase 4 Next.js UI on a disposable Hardhat chain and MySQL database.
 Evidence is recorded in [batch-integration-phase5-evidence.json](batch-integration-phase5-evidence.json).
-The running Pi deployment remains on the earlier whole-product flow until
-Phase 6 activation.
+The Pi deployment was subsequently activated in
+[Phase 6](batch-activation-phase6.md); this page records disposable acceptance.
 
 Validation passed: 107 contract tests; API/indexer/UI typechecks and isolated
 production builds; 43 UI unit tests; 104 fixture browser regressions; and both

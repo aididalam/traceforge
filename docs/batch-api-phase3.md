@@ -1,9 +1,10 @@
 # Product ID and batch API — phase 3
 
 Implemented 2026-10-06. This phase connects the quantity contract to the indexer,
-database and business/public APIs. UI integration is phase 4; activation on Pi
-is phase 6. The running legacy API/UI, validator ledger and product database
-remain on their current deployment while these consumers are prepared.
+database and business/public APIs. UI integration followed in phase 4, and
+[Phase 6](batch-activation-phase6.md) subsequently activated the new Pi contract,
+fresh database and local services. The checks below describe the isolated
+Phase 3 implementation milestone.
 
 ## Delivered behaviour
 

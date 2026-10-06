@@ -1,5 +1,9 @@
 # Direct-claim upgrade and local activation
 
+Historical milestone. The contract, demo products and credential path below
+were superseded by [Phase 6 batch activation](batch-activation-phase6.md) on
+2026-10-06. Use that guide for current services, tracking links and credentials.
+
 Completed locally on 2026-10-05. Businesses independently register, receive any
 open product after physical handover and close products they currently hold.
 Sender proposal/accept/cancel and pending custody have been removed throughout
@@ -50,7 +54,7 @@ failed operation remains; confirmed journals retain no signed transaction data.
 Public tracking shows product details, consented business names and recorded
 UTC dates. Live browser verification covered both short links, real Distributor
 sign-in, cross-producer product history, QR, holder close controls and sign-out.
-The public [operation receipt](../contracts/deployments/9009/operations/direct-claim-demo.json)
+The historical [operation receipt](https://github.com/aididalam/traceforge-contracts/blob/d4f94f4c0a2b4cc81c5b936fc0f38264a92f73bf/deployments/9009/operations/direct-claim-demo.json)
 contains identifiers and receipt references, without passwords or keys.
 
 82 contract tests, 28 UI unit tests and 74 desktop/mobile browser tests passed.
