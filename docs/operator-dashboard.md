@@ -4,6 +4,10 @@ Independent businesses register at `/operator/sign-in`, choose a business type a
 
 Businesses add products in their own production workspace. Each product has one Tracking ID and a downloadable QR. Public sharing is an explicit checkbox. Private descriptions never appear in the scan preview or public trace.
 
+Overview shows business statistics and product summaries. To create a product,
+open Products → Add product (`/operator/products/new`). Creation has its own
+page; the form is absent from Overview and the product list.
+
 The Add product form supports up to 32 additional fields. Operators choose each
 field's name and value, add or remove rows, and use details such as batch number,
 ingredients, size or expiry date without a predefined business schema. Names
