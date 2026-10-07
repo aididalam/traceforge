@@ -99,3 +99,12 @@ Try the [million-item batch](http://127.0.0.1:3101/s/e382nq6drb4d) or
 Businesses register independently, add products in their own workspace and receive products after physical handover. Registration requires the business's product/batch ID; quantity defaults to one. Batches can follow several supply routes, with each receiver selecting a source and amount. Inventory spans supply chains. Only the current owner of stock can remove it, with Sold, Lost, Damaged, Spoiled, Disposed or Other recorded as the reason. The status becomes Out of supply chain when global available quantity reaches zero; historical records remain readable.
 
 The Next.js business UI provides signup, product creation, QR download/camera scanning, source selection, receipt confirmation and removal actions. Public tracking remains an opt-in view with one Tracking ID or short code, decoded product details, named holders, quantity summaries and dated history. See [business dashboard flow](docs/operator-dashboard.md) and the [current batch activation guide](docs/batch-activation-phase6.md).
+
+## ERP integration
+
+Business ERP/POS connectors can use existing TraceForge product codes and scoped
+integration keys. The API durably queues up to 100 product operations per request
+and reports each blockchain result by job ID. A completed checkout can record
+several Sold removals while the cashier's ERP continues its normal workflow.
+The separate worker handles ordered processing, retries and crash recovery.
+See [ERP setup and checkout integration](docs/erp-integration.md).

@@ -1,6 +1,6 @@
 # TraceForge remaining delivery phases
 
-Updated 2026-10-06. The goal is a usable multi-tenant traceability platform:
+Updated 2026-10-07. The goal is a usable multi-tenant traceability platform:
 operators record supply-chain activity safely, and consumers inspect explicitly
 published provenance through a normal web/QR experience.
 
@@ -39,6 +39,20 @@ reliability work in the platform roadmap.
 - Encoded-path auth/rate-limit fix and public-discovery integration verification.
 - [UI architecture specification](ui-architecture.md).
 
+## ERP/POS API extension — 2026-10-07
+
+The [ERP integration guide](erp-integration.md) defines independent business
+keys, existing-code scanning, stock-route mapping and queued bulk operations.
+API migration 011 adds hashed scoped keys and a durable job/item queue. An ERP
+can submit up to 100 create/receive/remove operations after a completed business
+event, poll each item and retry the same keys without duplicating stock changes.
+The separate worker preserves per-business order and recovers interrupted chain
+writes. Linux worker supervision assets are included; installing and testing
+hosted process supervision remains deployment work. Each item is its own
+transaction, so a checkout can report partial failure. A connector inside the
+particular ERP must deliver its completed events; no ERP vendor plugin is bundled.
+See [ERP validation and activation evidence](erp-integration-evidence.json).
+
 These are implemented foundations, not a claim that production deployment or
 the end-user product is complete. The current four validators share one Pi.
 
@@ -50,7 +64,7 @@ on Pi, and all local migrations applied. Historical acceptance notes below
 record earlier milestones; their temporary-write restrictions no longer apply.
 See [the historical direct-claim receipt](direct-claim-upgrade.md).
 The 2026-10-06 batch activation supersedes that deployment. Its separate database
-has indexer migrations 001–006 and API migrations 001–010; the retired database
+has indexer migrations 001–006 and API migrations 001–011; the retired database
 is removed. All six batch-upgrade phases are complete, while the platform work
 below remains separate.
 

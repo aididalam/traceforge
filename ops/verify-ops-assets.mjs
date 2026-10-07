@@ -4,6 +4,19 @@ import {
 
 const required = new Map([
   [
+    "ops/systemd/traceforge-erp-worker.service",
+    [
+      "User=traceforge",
+      "WorkingDirectory=/opt/traceforge/api",
+      "EnvironmentFile=/etc/traceforge/api.env",
+      "Environment=TRACEFORGE_BROADCAST_ENABLED=false",
+      "ExecStart=/usr/bin/node /opt/traceforge/api/dist/erp-worker.js",
+      "Restart=on-failure",
+      "KillSignal=SIGTERM",
+      "TimeoutStopSec=90s",
+    ],
+  ],
+  [
     "ops/systemd/traceforge-api.service",
     [
       "User=traceforge",
@@ -123,4 +136,3 @@ console.log(
 console.log(
   "Runbook includes deployment, recovery, and backup verification."
 );
-

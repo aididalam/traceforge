@@ -2,6 +2,16 @@
 
 These files are reference deployment assets for a Linux host.
 
+ERP bulk jobs also need the continuous
+[`traceforge-erp-worker.service`](systemd/traceforge-erp-worker.service).
+Apply API migration 011 and build the API before starting it. It uses the API's
+environment and wallets; its default disables broadcasts until explicitly
+configured for an authorized writing deployment. Install/enable it alongside
+the API and indexer, then check its journal and job status after a restart.
+See the [ERP connector guide](../docs/erp-integration.md) for key management,
+checkout payloads, retries and recovery. The macOS development setup runs the
+worker separately; these Linux units are reference assets.
+
 Reference layout:
 
 - repository: /opt/traceforge

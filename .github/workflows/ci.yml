@@ -65,6 +65,7 @@ jobs:
           npm run verify:public-short-links
           npm run verify:operator-dashboard
           npm run verify:product-input
+          npm run test:erp-input
           npm run verify:public-products
           npm run verify:provenance-schema
           npm audit --omit=dev --audit-level=high

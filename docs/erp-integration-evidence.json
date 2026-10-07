@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "verifiedAt": "2026-10-07T01:51:48.315Z",
+  "scope": "TraceForge API extension for external ERP/POS connectors",
+  "apiVersion": "0.18.0",
+  "validation": {
+    "tests": 6,
+    "passed": true
+  },
+  "assembledRegression": {
+    "passed": true,
+    "confirmedTransactions": 147,
+    "expectedCompetingFailure": 1,
+    "browserProfiles": 2,
+    "accountingCheckpoints": 39,
+    "replayTables": 5,
+    "paginatedRemovals": 55,
+    "eventCursorStartsAt": "9007199254741000",
+    "checks": [
+      "Independent registration stores and displays an arbitrary business type; the business participates in the same dynamic custody flow.",
+      "Four independent businesses signed up, registered on chain and signed in without invitations.",
+      "Dynamic field labels/values round-trip through stored JSON, operator details and the on-chain metadata hash; invalid or duplicate fields are rejected before storage.",
+      "Scanning does not transfer; explicit receipt changes holder without membership. Retries are idempotent; stale/conflicting claims are rejected.",
+      "Generic production simulation makes no changes; registered singles require quantity-aware removal rather than generic close.",
+      "One business receives products from two independent producers; inventory spans workspaces while unrelated private metadata stays hidden.",
+      "All seven generic mutation simulations reject closed products; retired proposal/accept/cancel routes are absent.",
+      "Distributor closes its current product without Shop role or production membership; non-holder close and receiving a closed product fail.",
+      "Public tracking keeps named holders, product details, dates and short IDs. Private products stay hidden, and sync respects explicit unpublishing.",
+      "Registration validates required IDs/counts before storage; duplicate business IDs remain separate records, with confirmed unique aliases including private registrations and exact paginated public search.",
+      "Partial receipts conserve global quantity, aggregate stock across six independent paths and three holders, preserve return lineage, paginate without changing totals, and reject stale/oversized/self receipts.",
+      "One 100,000-item removal produces one event; owner-only removals preserve written on-chain reasons and category totals, and the batch closes only after all routes reach zero.",
+      "Simultaneous receivers of the same source version cannot overdraw stock: exactly one transaction confirms.",
+      "Projection is repeatable and rebuildable, rejects inconsistent quantity events atomically, and quantity queries are isolated by contract deployment.",
+      "Business-code reservations support custom values, reject conflicts, reuse existing reservations, roll back safely and grow from one character to two, then three.",
+      "Concurrent transactions allocate different automatic business codes and serialize retries for the same business.",
+      "Custom-code signup rejects an occupied code without leaving an account or key file; a free custom code registers successfully.",
+      "Actual migration runners and legacy temporary-table dashboard/public-history integration checks pass on the upgraded schema.",
+      "Projector runs repeatedly without duplicate custody receipts; confirmed journals remove serialized transactions.",
+      "Scoped ERP keys are hashed at rest, organization-bound, hidden after creation, and cannot authenticate operator/generic routes; encoded routes remain protected.",
+      "Bulk acceptance is durable before blockchain work, survives API restart and expired leases, normalizes existing QR codes, and atomically rejects conflicting/invalid retries without leaking private products.",
+      "One completed checkout removes multiple products asynchronously, preserves exact batch/single counts and on-chain Unicode reasons, binds receipt references into evidence, and remains idempotent across jobs/concurrent workers.",
+      "Non-owner, overdraw, stale version and nonexistent route fail per item without cancelling successful sale lines or creating failed chain transactions.",
+      "Broadcast-disabled work stays queued with frozen payloads; another worker recovers a mined transaction after a simulated crash, even after key revocation, without minting a duplicate product.",
+      "Revocation/expiry and inactive accounts block ERP access; unstarted revoked work is cancelled while already submitted transactions remain auditable.",
+      "A bounded 1,000-item per-business backlog returns backpressure without partial enqueue; queue results never expose signed transactions or credential hashes.",
+      "Unmocked desktop/mobile browsers create singles and million-item batches, resolve duplicate business IDs, receive exact routes, return stock, record bulk sold/lost/spoiled reasons and exhaust the final item; every mutation matches contract and SQL balances.",
+      "Real MySQL event IDs above 2^53 survive API and browser history pagination beyond 50 updates; full quantity, route, movement, custody and entity rebuilds equal their original projections.",
+      "An interrupted prepared write blocks a new transaction for the same business until the original operation is recovered.",
+      "Disabling broadcasts blocks both generic and operator writes without creating journal entries or changing chain state."
+    ]
+  },
+  "finalBackend": {
+    "passed": true,
+    "confirmedTransactions": 53,
+    "expectedCompetingFailure": 1,
+    "checks": [
+      "Scoped ERP keys are hashed at rest, organization-bound, hidden after creation, and cannot authenticate operator/generic routes; encoded routes remain protected.",
+      "Bulk acceptance is durable before blockchain work, survives API restart and expired leases, normalizes existing QR codes, and atomically rejects conflicting/invalid retries without leaking private products.",
+      "One completed checkout removes multiple products asynchronously, preserves exact batch/single counts and on-chain Unicode reasons, binds receipt references into evidence, and remains idempotent across jobs/concurrent workers.",
+      "Non-owner, overdraw, stale version and nonexistent route fail per item without cancelling successful sale lines or creating failed chain transactions.",
+      "Broadcast-disabled work and transport failure during contract simulation retry without new writes; another worker recovers a mined transaction after a simulated crash, even after key revocation, without minting a duplicate product.",
+      "Revocation/expiry and inactive accounts block ERP access; unstarted revoked work is cancelled while already submitted transactions remain auditable.",
+      "A bounded 1,000-item per-business backlog returns backpressure without partial enqueue; queue results never expose signed transactions or credential hashes."
+    ],
+    "completedCheckoutProducts": 3,
+    "checkoutOperations": 4,
+    "queueStates": {
+      "CONFIRMED": 17,
+      "FAILED": 4,
+      "CANCELLED": 1
+    },
+    "utcAcrossServerTimezones": true,
+    "transportFailureDuringSimulationRecovered": true
+  },
+  "live": {
+    "chainId": 9009,
+    "contract": {
+      "address": "0xf286a8f7bbbe4e5f2337e1701524368794de5672",
+      "runtimeBytecodeHash": "0x8b81a848236820215ceca237aa5cd419b858733688db3814e077199087c9b0e8"
+    },
+    "contractRedeployed": false,
+    "existingDataReset": false,
+    "existingSixDemoProductsVerified": true,
+    "apiMigrations": [
+      "001_auth.sql",
+      "002_auth_principals.sql",
+      "003_chain_write_operations.sql",
+      "004_public_entity_publications.sql",
+      "005_public_entity_tracking_ids.sql",
+      "006_public_entity_presentations.sql",
+      "007_public_entity_short_links.sql",
+      "008_operator_accounts.sql",
+      "009_independent_businesses.sql",
+      "010_product_identifiers_and_business_codes.sql",
+      "011_erp_integration.sql"
+    ],
+    "tables": 40,
+    "migrationRerunSkipped": true,
+    "backupRestore": {
+      "passed": true,
+      "sourceTables": 36,
+      "restoredTables": 36,
+      "rowCountMismatches": 0,
+      "ownerOnlyPermissions": true
+    },
+    "erpConfirmedTransactions": 9,
+    "totalConfirmedTransactions": 40,
+    "pendingWrites": 0,
+    "retainedSignedTransactions": 0,
+    "queueStates": {
+      "CONFIRMED": 9
+    },
+    "evidenceHashesVerified": 6,
+    "products": [
+      {
+        "name": "ERP demo Cola batch",
+        "trackingId": "0x49bb14002ce95538a2e0c45b481130a0e9b366467bb0fa578bb2775683541b1e",
+        "shortCode": "pfv4c5dgvjxr",
+        "initialQuantity": "100",
+        "availableQuantity": "98",
+        "removedQuantity": "2",
+        "shopAvailable": "18",
+        "inSupplyChain": true
+      },
+      {
+        "name": "ERP demo Soap batch",
+        "trackingId": "0xef7ac933151f2991f811c86432c027235158d9798c76c10d6eaed09c721f58c9",
+        "shortCode": "b47mjcjqnq85",
+        "initialQuantity": "50",
+        "availableQuantity": "47",
+        "removedQuantity": "3",
+        "shopAvailable": "7",
+        "inSupplyChain": true
+      },
+      {
+        "name": "ERP demo Bottle",
+        "trackingId": "0x999e0803a66acaadc5c412c5d380df8a57a38451cb344a1ca337684afa695c08",
+        "shortCode": "msxjg3x9jkye",
+        "initialQuantity": "1",
+        "availableQuantity": "0",
+        "removedQuantity": "1",
+        "shopAvailable": "0",
+        "inSupplyChain": false
+      }
+    ],
+    "browser": {
+      "passed": true,
+      "checks": [
+        {
+          "profile": "desktop",
+          "products": 3,
+          "passed": true,
+          "decodedMetadata": true,
+          "correctSupplyStatus": true,
+          "noHorizontalOverflow": true,
+          "pageErrors": 0
+        },
+        {
+          "profile": "mobile",
+          "products": 3,
+          "passed": true,
+          "decodedMetadata": true,
+          "correctSupplyStatus": true,
+          "noHorizontalOverflow": true,
+          "pageErrors": 0
+        }
+      ]
+    },
+    "apiHealth": true,
+    "apiReady": true,
+    "indexerEventLag": 0,
+    "validatorsHealthy": 4
+  },
+  "temporaryArtifacts": {
+    "generatedBuildFilesRemoved": 69,
+    "temporaryTestDatabasesRemaining": 0,
+    "isolatedTestChainStopped": true
+  },
+  "limits": {
+    "operationsPerRequest": 100,
+    "requestBytes": 1048576,
+    "pendingItemsPerBusiness": 1000,
+    "separateTransactionPerItem": true
+  },
+  "remaining": [
+    "Connector implementation inside the chosen ERP/POS",
+    "Hosted HTTPS deployment and supervised restart/reboot verification"
+  ],
+  "sourceCommits": {
+    "api": "7cf12c3173967ff42409f4411ff38a522b477c6e",
+    "ui": "dbabb71d09cd635ae8b5b76e54345306dde99346",
+    "contracts": "f4504dc2b4fdfb7e2af1627de9f93c31f604de31",
+    "indexer": "d9e3f6544018a7c9fd677159fa1df87b874b8634",
+    "chain": "199bef1d1225b72e84aaa09279cd043590782937"
+  }
+}

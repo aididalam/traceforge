@@ -1,0 +1,24 @@
+[Unit]
+Description=TraceForge ERP queue worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=traceforge
+Group=traceforge
+WorkingDirectory=/opt/traceforge/api
+Environment=NODE_ENV=production
+Environment=TRACEFORGE_BROADCAST_ENABLED=false
+EnvironmentFile=/etc/traceforge/api.env
+ExecStart=/usr/bin/node /opt/traceforge/api/dist/erp-worker.js
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStopSec=90s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
