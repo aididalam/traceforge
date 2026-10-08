@@ -1,0 +1,13 @@
+# Enable explicitly. Mount only the exported public bundle directory, never
+# validator data/private keys, and give this token only to node operators.
+services:
+  api:
+    environment:
+      TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED: "true"
+      TRACEFORGE_NETWORK_BUNDLE_FILE: /run/traceforge/network/join-network.json
+      TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE: /run/secrets/network-bootstrap-token
+    volumes:
+      - ${TRACEFORGE_DATA_DIR:?}/network:/run/traceforge/network:ro
+    secrets: [network-bootstrap-token]
+secrets:
+  network-bootstrap-token: {file: "${TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE:?}"}

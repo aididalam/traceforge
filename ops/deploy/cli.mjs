@@ -1,4 +1,4 @@
-import {mkdir, readFile, writeFile, stat, readdir} from 'node:fs/promises';
+import {mkdir, readFile, writeFile, stat, readdir, chmod} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {spawn} from 'node:child_process';
@@ -23,15 +23,17 @@ export async function deployment(options={}){
  const rendered=resolve(dirname(path),'compose.env');
  await writeFile(rendered,Object.entries(env).map(([k,v])=>`${k}='${v.replaceAll("'", "'\\''")}'`).join('\n')+'\n',{mode:0o600});
  const docker=args=>execute('docker',['--context',env.TRACEFORGE_DOCKER_CONTEXT,...args]);
- const files=['-f','deploy/compose.yml',...(env.TRACEFORGE_DATABASE_MODE==='managed'?['-f','deploy/compose.mysql.yml']:[]),...(env.TRACEFORGE_PROFILE==='pi'?['-f','deploy/compose.pi.yml']:[]),...(env.TRACEFORGE_CHAIN_NETWORK?['-f','deploy/compose.chain-network.yml']:[])];
+ const files=['-f','deploy/compose.yml',...(env.TRACEFORGE_DATABASE_MODE==='managed'?['-f','deploy/compose.mysql.yml']:[]),...(env.TRACEFORGE_PROFILE==='pi'?['-f','deploy/compose.pi.yml']:[]),...(env.TRACEFORGE_CHAIN_NETWORK?['-f','deploy/compose.chain-network.yml']:[]),...(env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED==='true'?['-f','deploy/compose.network-bootstrap.yml']:[])];
  const composeArgs=['--context',env.TRACEFORGE_DOCKER_CONTEXT,'compose','--env-file',rendered,...files];
  const compose=(args,options)=>execute('docker',[...composeArgs,...args],options);
  return {path,env,rendered,docker,compose,composeArgs};
 }
 async function initialize(env){
  await mkdir(env.TRACEFORGE_DATA_DIR,{recursive:true,mode:0o700});
- for(const name of ['wallets','secrets','backups','mysql','caddy-data','caddy-config'])await mkdir(resolve(env.TRACEFORGE_DATA_DIR,name),{recursive:true,mode:0o700});
- for(const key of ['MYSQL_PASSWORD_FILE','MYSQL_ROOT_PASSWORD_FILE','TRACEFORGE_SESSION_KEY_FILE','TRACEFORGE_BACKUP_KEY_FILE','TRACEFORGE_PROXY_KEY_FILE']){
+ await chmod(env.TRACEFORGE_DATA_DIR,0o700);
+ for(const name of ['wallets','secrets','backups','mysql','caddy-data','caddy-config','network'])await mkdir(resolve(env.TRACEFORGE_DATA_DIR,name),{recursive:true,mode:0o700});
+ for(const name of ['wallets','secrets','backups','caddy-data','caddy-config','network'])await chmod(resolve(env.TRACEFORGE_DATA_DIR,name),0o700);
+ for(const key of ['MYSQL_PASSWORD_FILE','MYSQL_ROOT_PASSWORD_FILE','TRACEFORGE_SESSION_KEY_FILE','TRACEFORGE_BACKUP_KEY_FILE','TRACEFORGE_PROXY_KEY_FILE','TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE']){
   try{await stat(env[key]);}catch(error){
    if(error.code!=='ENOENT')throw error;
    if(key.startsWith('MYSQL_')&&(env.TRACEFORGE_DATABASE_MODE==='external'||(await readdir(resolve(env.TRACEFORGE_DATA_DIR,'mysql'))).length))throw Error('Existing database requires its original credential file');
@@ -50,15 +52,34 @@ async function doctor(d){
  await d.compose(['config','--quiet']);
  console.log('Deployment configuration, private storage and Compose definition verified.');
 }
+async function prepareImages(d,action){
+ const endpoint=await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'context','inspect','--format','{{.Endpoints.docker.Host}}'],{capture:true});
+ if(!endpoint.startsWith('unix://'))throw Error('Run image commands on the Docker host');
+ if(action==='build'){
+  if(process.env.TRACEFORGE_HELPER_CONTAINER!=='true')await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'build','-t',d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-ops:'+d.env.TRACEFORGE_VERSION,'-f','deploy/Dockerfile.ops','.']);
+  await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'build','-t',d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-contract-tools:'+d.env.TRACEFORGE_VERSION,'contracts']);
+  await d.compose(['build','api','indexer','ui']);
+ }else for(const component of ['ops','contract-tools','api','indexer','ui'])await d.docker(['pull',d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-'+component+':'+d.env.TRACEFORGE_VERSION]);
+}
 export async function main(){
  const command=process.argv[2]||'help';
- if(command==='help'){console.log('Commands: init, doctor, build, up, down, status, logs, check, migrate, backup, restore-check, restore, deploy, rollback\nSet TRACEFORGE_ENV_FILE to an owner-only deployment configuration.');return;}
+ if(command==='help'){console.log('Commands: setup, images, init, doctor, build, pull, up, down, status, logs, check, migrate, backup, restore-check, restore, deploy, rollback\nsetup prepares images, initializes private storage/secrets and runs doctor in order.\nChain: chain-init, chain-up, contract-init, chain-check, chain-export, validator-vote, validator-status\nJoining host: node-fetch, node-init, node-up, node-check, node-info, node-status, node-down\nSet TRACEFORGE_ENV_FILE to an owner-only deployment configuration.');return;}
+ if(command.startsWith('node-')){const {nodeOperation}=await import('./node.mjs');await nodeOperation(command);return;}
  const d=await deployment();
- if(command.startsWith('chain-')||command==='contract-init'){const {chainOperation}=await import('./chain.mjs');await chainOperation(command,d);return;}
+ if(command.startsWith('chain-')||command.startsWith('validator-')||command==='contract-init'){const {chainOperation}=await import('./chain.mjs');await chainOperation(command,d);return;}
+ if(command==='setup'){
+  await prepareImages(d,d.env.TRACEFORGE_IMAGE_MODE);
+  await initialize(d.env);
+  await doctor(d);
+  console.log('Setup complete. Follow the fresh-chain bootstrap or existing-chain startup steps.');return;
+ }
  if(command==='init'){await initialize(d.env);return;}
  if(command==='doctor'){await doctor(d);return;}
- if(['build','up','deploy','rollback','migrate'].includes(command))await doctor(d);
- if(command==='build')await d.compose(['build','api','indexer','ui']);
+ if(['up','deploy','rollback'].includes(command)&&(/^0x0{40}$/.test(d.env.TRACEFORGE_CONTRACT_ADDRESS)||/^0x0{64}$/.test(d.env.TRACEFORGE_RUNTIME_BYTECODE_HASH)))throw Error('Contract bootstrap pending; run contract-init before application startup');
+ if(['up','deploy','rollback','migrate'].includes(command))await doctor(d);
+ if(['images','build','pull'].includes(command)){
+  await prepareImages(d,command==='images'?d.env.TRACEFORGE_IMAGE_MODE:command);
+ }
  else if(command==='up')await d.compose(['up','-d','--wait','--wait-timeout','300']);
  else if(command==='down')await d.compose(['down']);
  else if(command==='status')await d.compose(['ps','-a']);

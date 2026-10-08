@@ -51,7 +51,7 @@ export async function backup(d){
  const release=resolve(d.env.TRACEFORGE_DATA_DIR,'release');await mkdir(release,{recursive:true,mode:0o700});
  await cp(d.path,resolve(release,'deployment.env'));
  const archive=['wallets','secrets','caddy-data','caddy-config','release'];
- for(const name of ['contract-deployment.json','contract-deployment-attempt.json'])try{await stat(resolve(d.env.TRACEFORGE_DATA_DIR,name));archive.push(name);}catch(error){if(error.code!=='ENOENT')throw error;}
+ for(const name of ['contract-deployment.json','contract-attempt.json','contract-deployment-attempt.json','network'])try{await stat(resolve(d.env.TRACEFORGE_DATA_DIR,name));archive.push(name);}catch(error){if(error.code!=='ENOENT')throw error;}
  if(active.length)await d.compose(['stop',...active]);
  try{
   const counts=await inventory(d);

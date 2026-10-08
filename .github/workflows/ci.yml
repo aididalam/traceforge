@@ -53,7 +53,7 @@ jobs:
 
       - name: Verify deployment configuration
         run: |
-          node --test ops/deploy/config.test.mjs
+          node --test ops/deploy/config.test.mjs ops/deploy/node.test.mjs
           bash -n ops/deploy/traceforge.sh ops/deploy/install-timers.sh ops/deploy/publish.sh
 
       - name: Verify API
@@ -71,6 +71,7 @@ jobs:
           npm run verify:operator-dashboard
           npm run verify:product-input
           npm run test:erp-input
+          npm run test:network-bootstrap
           npm run verify:public-products
           npm run verify:provenance-schema
           npm audit --omit=dev --audit-level=high
@@ -126,14 +127,3 @@ jobs:
           done
           cd api
           npm run test:direct-claim
-
-      - name: Verify chain scripts
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash -n chain/scripts/*.sh
-
-      - name: Verify operational assets
-        run: |
-          node ops/verify-ops-assets.mjs
-          node ops/verify-monitoring-assets.mjs

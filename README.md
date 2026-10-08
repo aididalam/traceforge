@@ -6,109 +6,127 @@ It is designed to support different companies, products, organizations, workflow
 
 ## Components
 
-| Submodule | Role | Repository |
+| Submodule | Purpose | Repository |
 | --- | --- | --- |
-| `chain/` | Private Hyperledger Besu QBFT infrastructure | [traceforge-chain](https://github.com/aididalam/traceforge-chain) |
-| `contracts/` | Generic multi-tenant traceability and authorization | [traceforge-contracts](https://github.com/aididalam/traceforge-contracts) |
-| `indexer/` | Contract-event indexing into MySQL projections | [traceforge-indexer](https://github.com/aididalam/traceforge-indexer) |
-| `api/` | Authenticated operations and opt-in public provenance | [traceforge-api](https://github.com/aididalam/traceforge-api) |
-| `ui/` | Next.js product tracking interface | [traceforge-ui](https://github.com/aididalam/traceforge-ui) |
+| [chain/](chain/) | Besu blockchain, validator nodes and peer connectivity | [traceforge-chain](https://github.com/aididalam/traceforge-chain) |
+| [contracts/](contracts/) | Business registration, product ownership and batch quantities | [traceforge-contracts](https://github.com/aididalam/traceforge-contracts) |
+| [indexer/](indexer/) | Blockchain events projected into MySQL for searches and history | [traceforge-indexer](https://github.com/aididalam/traceforge-indexer) |
+| [api/](api/) | Business operations, public tracking and queued ERP integration | [traceforge-api](https://github.com/aididalam/traceforge-api) |
+| [ui/](ui/) | Next.js business dashboard and public product tracking | [traceforge-ui](https://github.com/aididalam/traceforge-ui) |
+
+The parent repository pins all five submodules in [.gitmodules](.gitmodules).
+The [API reference](api/API.md) contains endpoint methods, requests and response examples.
 
 ## Repository Structure
 
 ```text
 traceforge/
-├── api/         → TraceForge API submodule
-├── chain/       → TraceForge Chain submodule
-├── contracts/   → TraceForge Contracts submodule
-├── indexer/     → TraceForge Indexer submodule
-├── ui/          → TraceForge UI submodule (Next.js)
-├── docs/        → Architecture and delivery roadmap
-├── ops/         → Operational and monitoring assets
-└── .github/     → Secret-free verification workflow
+├── api/           API submodule and endpoint reference
+├── chain/         Blockchain infrastructure submodule
+├── contracts/     Solidity contracts submodule
+├── indexer/       Blockchain indexing submodule
+├── ui/            Next.js interface submodule
+├── deploy/        Dockerfiles, Compose files and configuration examples
+├── ops/           Deployment, monitoring and backup tools
+├── .github/       CI and Docker release workflows
+├── .gitmodules    Component repository URLs
+└── Makefile       Setup and deployment commands
 ```
 
-## Clone
+## Run with Docker
 
-Clone TraceForge together with all submodules:
+Install Git, Make, Docker Engine and the Compose plugin on a Docker-supported
+64-bit Linux host (AMD64 or ARM64), then:
 
 ```bash
 git clone --recurse-submodules https://github.com/aididalam/traceforge.git
+cd traceforge
+mkdir -m 700 .traceforge-deploy
+cp deploy/deployment.env.example .traceforge-deploy/deployment.env
+chmod 600 .traceforge-deploy/deployment.env
 ```
 
-If the repository has already been cloned:
+Edit that file: choose an absolute `TRACEFORGE_DATA_DIR` owned by your deployment
+user and set `TRACEFORGE_CHAIN_DATA_DIR` to its `chain` subdirectory. Use the local
+Docker context (`default` on Linux), your domain in `TRACEFORGE_SITE_ORIGIN` or
+`http://127.0.0.1:3101`, and the matching bind address/ports. UID/GID default to
+the runner. A domain requires HTTPS; open ports 80/443 for the proxy when using
+the standard HTTPS ports. Pi deployments need working Docker memory limits.
+
+For the published release, use `TRACEFORGE_IMAGE_MODE=pull` and
+`TRACEFORGE_VERSION=v0.1.0`. To build from this checkout, use `build` and `local`.
+Images are published under [aididalam on Docker Hub](https://hub.docker.com/u/aididalam).
+
+For a **new** blockchain and database:
 
 ```bash
-git submodule update --init --recursive
+make setup
+make chain-init
+make chain-up
+make contract-init
+make up
+make check
 ```
 
-All five components are separate repositories registered in [.gitmodules](.gitmodules).
-This parent repository pins their versions. Each component README links back
-to TraceForge, and the table above links to every component repository.
+`setup` prepares images, creates private storage/secrets and checks configuration.
+Open `http://127.0.0.1:3101/operator/sign-in` to register your business; `/` provides
+public tracking. After initial setup, use `make up` to start the application.
+Domain changes require updating the configuration and running `make up`.
 
-## Public UI
+For an **existing blockchain**, start with
+[deployment.external.env.example](deploy/deployment.external.env.example), set
+its exact RPC, chain/contract identity and persistent paths, then run `make setup`,
+`make up` and `make check`. Keep its original genesis, validator keys and data.
 
-For Docker Compose startup, runtime domain configuration and backup/recovery,
-see the [Docker deployment guide](docs/docker-deployment.md). Domain changes use
-`TRACEFORGE_SITE_ORIGIN` and reuse the same application images.
+<details>
+<summary>Connect another node or validator</summary>
 
-With Node 22 and dependencies installed in `ui/`:
+On the managed network host, configure `TRACEFORGE_P2P_ENABLED=true`,
+`TRACEFORGE_P2P_BIND` and `TRACEFORGE_P2P_ADVERTISE_HOST` with its reachable LAN/VPN
+IP. Run `make chain-up` and `make chain-export`. Allow peer TCP/UDP ports
+30303–30306 between the machines.
+
+On the joining machine, recursively clone this repository, create the private
+configuration directory above, then:
 
 ```bash
-cd ui
-npm ci
-NEXT_TELEMETRY_DISABLED=1 npm run dev
+cp chain/config/node.env.example .traceforge-deploy/node.env
+chmod 600 .traceforge-deploy/node.env
 ```
 
-Open `http://127.0.0.1:3100`. The gateway uses the existing public API at
-`http://127.0.0.1:3000` by default in development. The API must run separately;
-entities must be explicitly published to appear. UI startup makes no database
-or blockchain changes. See [UI setup and verification](ui/README.md).
+Set its own absolute data path, reachable LAN/VPN IP, matching chain ID and image
+version. Allow the joining node's TCP/UDP P2P port (default 30307) between hosts.
+Securely copy the network host's `TRACEFORGE_DATA_DIR/join-network.json`
+to `.traceforge-deploy/join-network.json`. Alternatively enable
+`TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED=true` on the network host, run `make init`,
+`make chain-export` and `make up`, then give the joining operator only the separate
+bootstrap token. Configure its HTTPS `TRACEFORGE_JOIN_BUNDLE_URL` and private
+`TRACEFORGE_JOIN_TOKEN_FILE`; run `make node-fetch` before initialization.
 
-Product links can use `/s/<12-character-code>` for sharing; the full
-`/track/<trackingId>` and original tenant/entity links remain compatible.
-The homepage's single lookup field accepts a short/full Tracking ID or searches
-the product/batch ID printed by a business.
-Registry and dashboard migrations are applied to the fresh local database. See [single-ID tracking](docs/public-tracking.md) and
-[short links and activation](docs/public-short-links.md).
+```bash
+make node-init
+make node-up
+make node-check
+make node-info
+```
 
-The public page shows shared product information, current business holders,
-and dated supply history. Approved names replace technical IDs in the main view;
-IDs remain in expandable references. See [public display details](docs/public-product-details.md)
-for the reviewed-field publication policy.
+Retry the check while initial synchronization completes. The node generates its
+own persistent key and can follow the chain immediately after synchronization.
+To elect it as a validator, each current validator operator votes through their
+private RPC:
 
-The [business dashboard](docs/operator-dashboard.md) supports independent signup,
-product creation, QR generation/scanning, direct receipt and owned-stock removal.
-See the [delivery roadmap](docs/roadmap.md), [UI architecture](docs/ui-architecture.md)
-and [fresh-chain validation](docs/direct-claim-upgrade.md).
+```bash
+make validator-vote ADDRESS=0x_NEW_NODE_ADDRESS ADD=true RPC=http://validator1:8545
+make validator-status
+```
 
-The activated upgrade follows the [product ID and batch quantity plan](docs/batch-quantity-plan.md):
-business references, quantities, multiple supply routes, partial removals and
-search. Phase 1 defines the design, [phase 2 implements/tests the contract](docs/batch-contract-phase2.md),
-[phase 3 implements/tests the indexer and API](docs/batch-api-phase3.md),
-[phase 4 implements/tests the UI](docs/batch-ui-phase4.md), and
-[phase 5 validates the assembled system](docs/batch-integration-phase5.md) with
-131 confirmed transactions and real desktop/mobile browser flows.
-[Phase 6 activates the upgrade on Pi](docs/batch-activation-phase6.md): 31 confirmed
-transactions, four independent businesses, six registrations and verified
-desktop/mobile views. The active contract is
-`0xf286a8f7bbbe4e5f2337e1701524368794de5672` on chain 9009.
-API/UI run locally on ports 3000/3101, using a fresh deployment-specific database.
-The old database and active wallet files were retired after verified backups.
-Try the [million-item batch](http://127.0.0.1:3101/s/e382nq6drb4d) or
-[single item ready to receive](http://127.0.0.1:3101/s/0jx8h77sec5n).
+More than half of the current validators must vote; a four-validator network
+needs three matching votes. Confirm election in `validator-status`. Removal uses
+`ADD=false` and the same majority rule. Keep RPC private and retain node storage.
 
-## Independent businesses and product receipt
+</details>
 
-Businesses register independently, add products in their own workspace and receive products after physical handover. Registration requires the business's product/batch ID; quantity defaults to one. Batches can follow several supply routes, with each receiver selecting a source and amount. Inventory spans supply chains. Only the current owner of stock can remove it, with Sold, Lost, Damaged, Spoiled, Disposed or Other recorded as the reason. The status becomes Out of supply chain when global available quantity reaches zero; historical records remain readable.
-
-The Next.js business UI provides signup, product creation, QR download/camera scanning, source selection, receipt confirmation and removal actions. Public tracking remains an opt-in view with one Tracking ID or short code, decoded product details, named holders, quantity summaries and dated history. See [business dashboard flow](docs/operator-dashboard.md) and the [current batch activation guide](docs/batch-activation-phase6.md).
-
-## ERP integration
-
-Business ERP/POS connectors can use existing TraceForge product codes and scoped
-integration keys. The API durably queues up to 100 product operations per request
-and reports each blockchain result by job ID. A completed checkout can record
-several Sold removals while the cashier's ERP continues its normal workflow.
-The separate worker handles ordered processing, retries and crash recovery.
-See [ERP setup and checkout integration](docs/erp-integration.md).
+Use `make status`, `make logs`, `make check`, `make backup` and
+`make restore-check` for operations; `make help` lists commands.
+Keep deployment files, wallets and backup keys outside Git. Four validators on
+one machine share that machine's availability. See [operations](ops/README.md).

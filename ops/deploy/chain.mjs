@@ -1,14 +1,18 @@
-import {mkdir,stat,writeFile,readFile,readdir,copyFile,chmod} from 'node:fs/promises';
+import {mkdir,stat,writeFile,readFile,readdir,copyFile,chmod,rename} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {randomBytes} from 'node:crypto';
+import {randomBytes,createHash} from 'node:crypto';
 import {execute} from './cli.mjs';
 import {encryptedProcess} from './recovery.mjs';
 
-function chainArgs(d){return ['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'compose','--env-file',d.rendered,'-f','chain/docker/deployment.compose.yml',...(d.env.TRACEFORGE_CHAIN_NETWORK_EXISTING==='true'?['-f','chain/docker/external-network.compose.yml']:[])];}
-async function start(d){await execute('docker',[...chainArgs(d),'up','-d']);}
+function chainArgs(d){return ['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'compose','--env-file',d.rendered,'-f','chain/docker/deployment.compose.yml',...(d.env.TRACEFORGE_CHAIN_NETWORK_EXISTING==='true'?['-f','chain/docker/external-network.compose.yml']:[]),...(d.env.TRACEFORGE_P2P_ENABLED==='true'?['-f','chain/docker/p2p.compose.yml']:[])];}
+async function start(d){
+ const running=(await execute('docker',[...chainArgs(d),'ps','--status','running','--services'],{capture:true})).split('\n').filter(Boolean);
+ if(running.length>=3){for(let i=1;i<=4;i++){await execute('docker',[...chainArgs(d),'up','-d','--no-deps','validator'+i]);await wait(d);}}
+ else await execute('docker',[...chainArgs(d),'up','-d']);
+}
 async function check(d){
  const urls=d.env.TRACEFORGE_CHAIN_MODE==='local'?[1,2,3,4].map(i=>`http://validator${i}:8545`):[d.env.TRACEFORGE_RPC_URL,...(d.env.TRACEFORGE_RPC_FALLBACK_URLS||'').split(',').filter(Boolean)];
- const code=`const urls=${JSON.stringify(urls)},expected=${Number(d.env.TRACEFORGE_CHAIN_ID)};async function rpc(url,method,params=[]){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(4000)});const j=await r.json();if(j.error||!('result'in j))throw Error();return j.result;}const online=[];for(const url of urls)try{if(BigInt(await rpc(url,'eth_chainId'))===BigInt(expected))online.push(url);}catch{}if(!online.length)throw Error('No live RPC');const url=online[0],validators=await rpc(url,'qbft_getValidatorsByBlockNumber',['latest']);if(validators.length!==4)throw Error('Validator set mismatch');const before=BigInt(await rpc(url,'eth_blockNumber'));await new Promise(r=>setTimeout(r,6000));const after=BigInt(await rpc(url,'eth_blockNumber'));if(after<=before)throw Error('Block production stalled');console.log(JSON.stringify({chainId:expected,validators:validators.length,reachableRpc:online.length,block:after.toString(),status:online.length===urls.length?'healthy':'degraded',maxLag:Number((await Promise.all(online.map(u=>rpc(u,'eth_blockNumber').then(BigInt)))).reduce((m,v)=>v<m?v:m,after)-after)*-1}));`;
+ const code=`const urls=${JSON.stringify(urls)},expected=${Number(d.env.TRACEFORGE_CHAIN_ID)};async function rpc(url,method,params=[]){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(4000)});const j=await r.json();if(j.error||!('result'in j))throw Error();return j.result;}const online=[];for(const url of urls)try{if(BigInt(await rpc(url,'eth_chainId'))===BigInt(expected))online.push(url);}catch{}if(!online.length)throw Error('No live RPC');const url=online[0],validators=await rpc(url,'qbft_getValidatorsByBlockNumber',['latest']);if(validators.length<${Number(d.env.TRACEFORGE_MIN_VALIDATORS)})throw Error('Validator set below configured minimum');const before=BigInt(await rpc(url,'eth_blockNumber'));await new Promise(r=>setTimeout(r,6000));const after=BigInt(await rpc(url,'eth_blockNumber'));if(after<=before)throw Error('Block production stalled');console.log(JSON.stringify({chainId:expected,validators:validators.length,reachableRpc:online.length,block:after.toString(),status:online.length===urls.length?'healthy':'degraded',maxLag:Number((await Promise.all(online.map(u=>rpc(u,'eth_blockNumber').then(BigInt)))).reduce((m,v)=>v<m?v:m,after)-after)*-1}));`;
  const network=d.env.TRACEFORGE_CHAIN_NETWORK||d.env.TRACEFORGE_PROJECT+'_private';
  return execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'run','--rm','--network',network,'--add-host','host.docker.internal:host-gateway',d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-api:'+d.env.TRACEFORGE_VERSION,'node','-e',code],{capture:true});
 }
@@ -28,16 +32,19 @@ async function initialize(d){
   for(const name of ['key','key.pub']){await copyFile(resolve(directory,'generated/keys',keys[i-1],name),resolve(target,name));await chmod(resolve(target,name),name==='key'?0o600:0o644);}
   const publicKey=(await readFile(resolve(target,'key.pub'),'utf8')).trim().replace(/^0x/,'');
   if(!/^[a-fA-F0-9]{128}$/.test(publicKey))throw Error('Invalid validator public key');
-  bootnodes.push(`enode://${publicKey}@${d.env['VALIDATOR'+i+'_IP']||'172.28.91.'+(10+i)}:30303`);
+  // Local nodes bootstrap through the bridge; exported peers use host addresses.
+  bootnodes.push(`enode://${publicKey}@${d.env['VALIDATOR'+i+'_IP']||'172.28.91.'+(10+i)}:${d.env['VALIDATOR'+i+'_P2P_PORT']||30303}`);
  }
  await writeFile(resolve(directory,'shared/bootnodes.txt'),bootnodes.join('\n')+'\n',{mode:0o644});
  console.log('New validator identities/genesis prepared; start the chain and explicitly initialize its contract.');
 }
 export async function chainOperation(command,d){
+ if(command==='validator-vote'||command==='validator-status')return validatorOperation(command,d);
+ if(command==='chain-export')return exportNetwork(d);
  if(command==='chain-check'){const result=await check(d);console.log(result);return JSON.parse(result);}
  if(d.env.TRACEFORGE_CHAIN_MODE!=='local')throw Error('External validators use their own lifecycle; use their chain Compose project');
  if(command==='chain-init'){await initialize(d);return;}
- if(command==='chain-up'){await start(d);await wait(d);return;}
+ if(command==='chain-up'){await refreshBootnodes(d);await start(d);await wait(d);return;}
  if(command==='contract-init'){
   await wait(d);
   await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'run','--rm','--user',d.env.TRACEFORGE_UID+':'+d.env.TRACEFORGE_GID,'--network',d.env.TRACEFORGE_CHAIN_NETWORK,'--mount',`type=bind,source=${d.env.TRACEFORGE_DATA_DIR},target=/data`,'-e','TRACEFORGE_CHAIN_ID='+d.env.TRACEFORGE_CHAIN_ID,'-e','TRACEFORGE_RPC_URL='+d.env.TRACEFORGE_RPC_URL,d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-contract-tools:'+d.env.TRACEFORGE_VERSION],{capture:true});
@@ -58,4 +65,44 @@ export async function chainOperation(command,d){
   console.log('Cold validator snapshots completed while retaining chain identity and block production.');return;
  }
  throw Error('Unknown chain operation');
+}
+
+async function validatorOperation(command,d){
+ const url=process.env.RPC||d.env.TRACEFORGE_RPC_URL;
+ const parsed=new URL(url);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password||parsed.search||parsed.hash)throw Error('Invalid validator RPC');
+ const address=process.env.ADDRESS,add=process.env.ADD;
+ if(command==='validator-vote'&&(!/^0x[0-9a-fA-F]{40}$/.test(address||'')||!['true','false'].includes(add)))throw Error('Set ADDRESS and ADD=true or false explicitly');
+ const code=`const url=${JSON.stringify(url)};async function rpc(method,params=[]){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(8000)});const j=await r.json();if(!r.ok||j.error)throw Error('Validator RPC unavailable');return j.result;}if(BigInt(await rpc('eth_chainId'))!==BigInt(${JSON.stringify(d.env.TRACEFORGE_CHAIN_ID)}))throw Error('Chain mismatch');const {keccak256}=await import('viem');const code=await rpc('eth_getCode',[${JSON.stringify(d.env.TRACEFORGE_CONTRACT_ADDRESS)},'latest']);if(keccak256(code)!==${JSON.stringify(d.env.TRACEFORGE_RUNTIME_BYTECODE_HASH.toLowerCase())})throw Error('Contract mismatch');const validators=await rpc('qbft_getValidatorsByBlockNumber',['latest']);${command==='validator-vote'?`const accepted=await rpc('qbft_proposeValidatorVote',[${JSON.stringify(address)},${add}]);if(accepted!==true)throw Error('Vote rejected');console.log(JSON.stringify({proposalRecorded:true,address:${JSON.stringify(address)},add:${add},currentValidators:validators.length}));`:`console.log(JSON.stringify({validators,count:validators.length}));`}`;
+ const result=await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'run','--rm','--network',d.env.TRACEFORGE_CHAIN_NETWORK||d.env.TRACEFORGE_PROJECT+'_private',d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-api:'+d.env.TRACEFORGE_VERSION,'node','--input-type=module','-e',code],{capture:true});
+ console.log(result);return JSON.parse(result);
+}
+
+async function exportNetwork(d){
+ if(d.env.TRACEFORGE_CHAIN_MODE!=='local'||d.env.TRACEFORGE_P2P_ENABLED!=='true')throw Error('Configure reachable private P2P before exporting the managed chain');
+ const genesis=await readFile(resolve(d.env.TRACEFORGE_CHAIN_DATA_DIR,'shared/genesis.json'),'utf8');
+ const bootnodes=[];
+ for(let i=1;i<=4;i++){
+  const key=(await readFile(resolve(d.env.TRACEFORGE_CHAIN_DATA_DIR,'validator'+i,'key.pub'),'utf8')).trim().replace(/^0x/,'');
+  if(!/^[0-9a-fA-F]{128}$/.test(key))throw Error('Invalid node public key');
+  bootnodes.push(`enode://${key}@${d.env['VALIDATOR'+i+'_ADVERTISE_HOST']}:${d.env['VALIDATOR'+i+'_P2P_PORT']}`);
+ }
+ const code=`const r=await fetch(${JSON.stringify(d.env.TRACEFORGE_RPC_URL)},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_getBlockByNumber',params:['0x0',false]})});const j=await r.json();if(!j.result?.hash)throw Error();console.log(j.result.hash);`;
+ const genesisHash=await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'run','--rm','--network',d.env.TRACEFORGE_CHAIN_NETWORK,d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-api:'+d.env.TRACEFORGE_VERSION,'node','-e',code],{capture:true});
+ const bundle={format:1,chainId:Number(d.env.TRACEFORGE_CHAIN_ID),genesis,genesisFileHash:createHash('sha256').update(genesis).digest('hex'),genesisHash,bootnodes,besuImage:d.env.TRACEFORGE_BESU_IMAGE};
+ const file=resolve(d.env.TRACEFORGE_DATA_DIR,'join-network.json');await writeFile(file,JSON.stringify(bundle,null,2)+'\n',{mode:0o644});
+ const published=resolve(d.env.TRACEFORGE_DATA_DIR,'network');await mkdir(published,{recursive:true,mode:0o700});
+ const temporary=resolve(published,'.join-network-'+randomBytes(6).toString('hex'));
+ await writeFile(temporary,JSON.stringify(bundle,null,2)+'\n',{mode:0o644,flag:'wx'});
+ await rename(temporary,resolve(published,'join-network.json'));
+ console.log('Public network bundle exported (no private keys): '+file);
+}
+
+async function refreshBootnodes(d){
+ const peers=[];
+ for(let i=1;i<=4;i++){
+  const key=(await readFile(resolve(d.env.TRACEFORGE_CHAIN_DATA_DIR,'validator'+i,'key.pub'),'utf8')).trim().replace(/^0x/,'');
+  if(!/^[a-fA-F0-9]{128}$/.test(key))throw Error('Invalid node public key');
+  peers.push(`enode://${key}@${d.env['VALIDATOR'+i+'_IP']||'172.28.91.'+(10+i)}:${d.env['VALIDATOR'+i+'_P2P_PORT']||30303}`);
+ }
+ await writeFile(resolve(d.env.TRACEFORGE_CHAIN_DATA_DIR,'shared/bootnodes.txt'),peers.join('\n')+'\n',{mode:0o644});
 }

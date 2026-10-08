@@ -20,6 +20,13 @@ export function parseEnv(text) {
 }
 
 export function validateConfig(env) {
+  env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED ||= 'false';
+  if (!['true','false'].includes(env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED)) throw Error('Invalid network bootstrap setting');
+  env.TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE ||= 'secrets/network-bootstrap-token';
+  env.TRACEFORGE_IMAGE_MODE ||= 'pull';
+  if (!['build','pull'].includes(env.TRACEFORGE_IMAGE_MODE)) throw new Error('Invalid TRACEFORGE_IMAGE_MODE');
+  env.TRACEFORGE_UID ||= String(process.getuid?.() ?? 1000);
+  env.TRACEFORGE_GID ||= String(process.getgid?.() ?? 1000);
   env.TRACEFORGE_PROFILE ||= 'server';
   if (!['server','pi'].includes(env.TRACEFORGE_PROFILE)) throw new Error('Invalid deployment resource profile');
   if (env.TRACEFORGE_PROFILE==='pi' && env.TRACEFORGE_DATABASE_MODE==='external') throw new Error('Pi resource profile requires the managed database definition');
@@ -51,13 +58,17 @@ export function validateConfig(env) {
     let parsed; try { parsed = new URL(url); } catch { throw new Error('Invalid TRACEFORGE_RPC_FALLBACK_URLS'); }
     if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) throw new Error('Invalid TRACEFORGE_RPC_FALLBACK_URLS');
   }
+  if (env.TRACEFORGE_CHAIN_MODE==='local') {
+    env.TRACEFORGE_CONTRACT_ADDRESS ||= '0x'+'0'.repeat(40);
+    env.TRACEFORGE_RUNTIME_BYTECODE_HASH ||= '0x'+'0'.repeat(64);
+  }
   if (!/^0x[0-9a-fA-F]{40}$/.test(required('TRACEFORGE_CONTRACT_ADDRESS'))) throw new Error('Invalid TRACEFORGE_CONTRACT_ADDRESS');
   if (!/^0x[0-9a-fA-F]{64}$/.test(required('TRACEFORGE_RUNTIME_BYTECODE_HASH'))) throw new Error('Invalid TRACEFORGE_RUNTIME_BYTECODE_HASH');
   if (!/^[a-zA-Z0-9_.:-]+$/.test(required('MYSQL_HOST'))) throw new Error('Invalid MYSQL_HOST');
   for (const key of ['MYSQL_PORT', 'TRACEFORGE_HTTP_PORT', 'TRACEFORGE_HTTPS_PORT']) integer(key, 1, 65535);
   for (const key of ['TRACEFORGE_CHAIN_ID', 'TRACEFORGE_UID', 'TRACEFORGE_GID', 'INDEXER_CHUNK_SIZE', 'TRACEFORGE_SYNC_INTERVAL_SECONDS', 'TRACEFORGE_BACKUP_RETENTION_DAYS']) integer(key);
   integer('TRACEFORGE_DEPLOYMENT_BLOCK', 0); integer('INDEXER_CONFIRMATIONS', 0);
-  for (const key of ['MYSQL_PASSWORD_FILE', 'MYSQL_ROOT_PASSWORD_FILE', 'TRACEFORGE_SESSION_KEY_FILE', 'TRACEFORGE_BACKUP_KEY_FILE', 'TRACEFORGE_PROXY_KEY_FILE']) {
+  for (const key of ['MYSQL_PASSWORD_FILE', 'MYSQL_ROOT_PASSWORD_FILE', 'TRACEFORGE_SESSION_KEY_FILE', 'TRACEFORGE_BACKUP_KEY_FILE', 'TRACEFORGE_PROXY_KEY_FILE', 'TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE']) {
     if (!required(key) || required(key).includes('..')) throw new Error(`Invalid ${key}`);
     if (/['"$`\\\r\n]/.test(env[key])) throw new Error(`Invalid ${key}`);
     env[key] = resolve(env.TRACEFORGE_DATA_DIR, env[key]);
@@ -72,6 +83,18 @@ export function validateConfig(env) {
     if(!/^hyperledger\/besu:[a-zA-Z0-9_.-]+$/.test(env.TRACEFORGE_BESU_IMAGE))throw new Error('Invalid pinned Besu image');
     env.TRACEFORGE_BESU_STORAGE_FORMAT ||= 'BONSAI';
     if(!['BONSAI','FOREST'].includes(env.TRACEFORGE_BESU_STORAGE_FORMAT))throw new Error('Invalid Besu storage format');
+  }
+  env.TRACEFORGE_MIN_VALIDATORS ||= '4';integer('TRACEFORGE_MIN_VALIDATORS',4);
+  env.TRACEFORGE_P2P_ENABLED ||= 'false';
+  if (!['true','false'].includes(env.TRACEFORGE_P2P_ENABLED)) throw new Error('Invalid TRACEFORGE_P2P_ENABLED');
+  if (env.TRACEFORGE_P2P_ENABLED==='true') {
+    if (isIP(required('TRACEFORGE_P2P_BIND'))!==4||isIP(required('TRACEFORGE_P2P_ADVERTISE_HOST'))!==4||['0.0.0.0','127.0.0.1'].includes(env.TRACEFORGE_P2P_ADVERTISE_HOST))throw new Error('Use a reachable private IPv4 address for P2P');
+    for(let i=1;i<=4;i++){
+      env['VALIDATOR'+i+'_P2P_PORT'] ||= String(30302+i);integer('VALIDATOR'+i+'_P2P_PORT',1,65535);
+      env['VALIDATOR'+i+'_ADVERTISE_HOST'] ||= env.TRACEFORGE_P2P_ADVERTISE_HOST;
+      if(isIP(env['VALIDATOR'+i+'_ADVERTISE_HOST'])!==4||['0.0.0.0','127.0.0.1'].includes(env['VALIDATOR'+i+'_ADVERTISE_HOST']))throw new Error('Invalid validator advertised IPv4 address');
+    }
+    if(new Set([1,2,3,4].map(i=>env['VALIDATOR'+i+'_P2P_PORT'])).size!==4)throw new Error('Use distinct validator P2P ports');
   }
   return env;
 }
@@ -88,10 +111,10 @@ export async function checkStorage(env) {
     const info = await stat(folder);
     if (!info.isDirectory() || (info.mode & 0o077)) throw new Error('Data and wallet directories must exist with owner-only access');
   }
-  for (const key of ['MYSQL_PASSWORD_FILE', 'TRACEFORGE_SESSION_KEY_FILE', 'TRACEFORGE_BACKUP_KEY_FILE', 'TRACEFORGE_PROXY_KEY_FILE', ...(env.TRACEFORGE_DATABASE_MODE === 'managed' ? ['MYSQL_ROOT_PASSWORD_FILE'] : [])]) {
+  for (const key of ['MYSQL_PASSWORD_FILE', 'TRACEFORGE_SESSION_KEY_FILE', 'TRACEFORGE_BACKUP_KEY_FILE', 'TRACEFORGE_PROXY_KEY_FILE', ...(env.TRACEFORGE_DATABASE_MODE === 'managed' ? ['MYSQL_ROOT_PASSWORD_FILE'] : []), ...(env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED === 'true' ? ['TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE'] : [])]) {
     const info = await stat(env[key]);
     if (!info.isFile() || (info.mode & 0o077)) throw new Error(`Owner-only secret file required: ${key}`);
     const value = (await readFile(env[key], 'utf8')).trim();
-    if (!value || (key.includes('_KEY_FILE') && !/^[a-fA-F0-9]{64}$/.test(value))) throw new Error(`Invalid secret file: ${key}`);
+    if (!value || (key.includes('_KEY_FILE') && !/^[a-fA-F0-9]{64}$/.test(value)) || (key === 'TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE' && !/^[a-f0-9]{64}$/.test(value))) throw new Error(`Invalid secret file: ${key}`);
   }
 }

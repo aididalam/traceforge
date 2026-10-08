@@ -5,7 +5,8 @@
     Referrer-Policy strict-origin-when-cross-origin
     -Server
   }
-  handle /integration/v1/* {
+  @direct_api path /integration/v1/* /network/v1/bootstrap
+  handle @direct_api {
     reverse_proxy api:3000 {
       header_up X-TraceForge-Proxy-Key {$TRACEFORGE_PROXY_KEY}
       header_up X-TraceForge-Client-IP {remote_host}
