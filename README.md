@@ -48,6 +48,10 @@ to TraceForge, and the table above links to every component repository.
 
 ## Public UI
 
+For Docker Compose startup, runtime domain configuration and backup/recovery,
+see the [Docker deployment guide](docs/docker-deployment.md). Domain changes use
+`TRACEFORGE_SITE_ORIGIN` and reuse the same application images.
+
 With Node 22 and dependencies installed in `ui/`:
 
 ```bash

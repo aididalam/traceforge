@@ -1,0 +1,175 @@
+name: ${TRACEFORGE_PROJECT:?}
+
+x-logging: &logging
+  driver: json-file
+  options: {max-size: 10m, max-file: "3"}
+x-runtime: &runtime
+  restart: unless-stopped
+  init: true
+  logging: *logging
+  stop_grace_period: 90s
+  security_opt: [no-new-privileges:true]
+  extra_hosts: ["host.docker.internal:host-gateway"]
+  networks: [private]
+x-env: &environment
+  NODE_ENV: production
+  MYSQL_HOST: ${MYSQL_HOST:?}
+  MYSQL_PORT: ${MYSQL_PORT:?}
+  MYSQL_DATABASE: ${MYSQL_DATABASE:?}
+  MYSQL_USER: ${MYSQL_USER:?}
+  MYSQL_PASSWORD_FILE: /run/secrets/db-password
+  TRACEFORGE_CHAIN_ID: ${TRACEFORGE_CHAIN_ID:?}
+  TRACEFORGE_RPC_URL: ${TRACEFORGE_RPC_URL:?}
+  TRACEFORGE_RPC_FALLBACK_URLS: ${TRACEFORGE_RPC_FALLBACK_URLS:-}
+  TRACEFORGE_CONTRACT_ADDRESS: ${TRACEFORGE_CONTRACT_ADDRESS:?}
+  TRACEFORGE_DEPLOYMENT_BLOCK: ${TRACEFORGE_DEPLOYMENT_BLOCK:?}
+  TRACEFORGE_RUNTIME_BYTECODE_HASH: ${TRACEFORGE_RUNTIME_BYTECODE_HASH:?}
+  TRACEFORGE_BROADCAST_ENABLED: ${TRACEFORGE_BROADCAST_ENABLED:?}
+  TRACEFORGE_BUSINESS_WALLET_DIRECTORY: /var/lib/traceforge/wallets
+  TRACEFORGE_PROXY_KEY_FILE: /run/secrets/proxy-key
+  TRACEFORGE_SYNC_INTERVAL_SECONDS: ${TRACEFORGE_SYNC_INTERVAL_SECONDS:-5}
+  INDEXER_CONFIRMATIONS: ${INDEXER_CONFIRMATIONS:-1}
+  INDEXER_CHUNK_SIZE: ${INDEXER_CHUNK_SIZE:-500}
+x-api: &api
+  <<: *runtime
+  image: ${TRACEFORGE_IMAGE_NAMESPACE:?}/traceforge-api:${TRACEFORGE_VERSION:?}
+  build: {context: ../api}
+  user: "${TRACEFORGE_UID:-1000}:${TRACEFORGE_GID:-1000}"
+  environment: *environment
+  secrets: [db-password, proxy-key]
+  volumes: ["${TRACEFORGE_DATA_DIR:?}/wallets:/var/lib/traceforge/wallets"]
+  tmpfs: ["/tmp:mode=1777"]
+  read_only: true
+  mem_limit: 768m
+x-indexer: &indexer
+  <<: *runtime
+  image: ${TRACEFORGE_IMAGE_NAMESPACE:?}/traceforge-indexer:${TRACEFORGE_VERSION:?}
+  build: {context: ../indexer}
+  user: "${TRACEFORGE_UID:-1000}:${TRACEFORGE_GID:-1000}"
+  environment: *environment
+  secrets: [db-password]
+  tmpfs: ["/tmp:mode=1777"]
+  read_only: true
+  mem_limit: 512m
+
+services:
+  indexer-migrate:
+    <<: *indexer
+    restart: "no"
+    command: [node, dist/migrate.js]
+  api-migrate:
+    <<: *api
+    restart: "no"
+    command: [node, dist/api-migrate.js]
+    depends_on:
+      indexer-migrate: {condition: service_completed_successfully}
+  api:
+    <<: *api
+    environment:
+      <<: *environment
+      API_HOST: 0.0.0.0
+      API_PORT: "3000"
+      TRACEFORGE_DEPLOYMENT_READINESS: "true"
+    depends_on:
+      api-migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, node, scripts/container-health.mjs, api]
+      interval: 15s
+      timeout: 10s
+      retries: 4
+      start_period: 45s
+  erp-worker:
+    <<: *api
+    command: [node, dist/erp-worker.js]
+    environment:
+      <<: *environment
+      TRACEFORGE_WORKER_HEARTBEAT: "true"
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, scripts/container-health.mjs, erp-worker]
+      interval: 20s
+      timeout: 5s
+      retries: 4
+      start_period: 90s
+  public-sync:
+    <<: *api
+    command: [node, scripts/service-loop.mjs, public-sync]
+    volumes: []
+    depends_on:
+      api-migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, node, scripts/container-health.mjs, public-sync]
+      interval: 20s
+      timeout: 5s
+      retries: 4
+      start_period: 90s
+  indexer:
+    <<: *indexer
+    depends_on:
+      api-migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, node, scripts/container-health.mjs, indexer]
+      interval: 20s
+      timeout: 5s
+      retries: 4
+      start_period: 120s
+  ui:
+    <<: *runtime
+    image: ${TRACEFORGE_IMAGE_NAMESPACE:?}/traceforge-ui:${TRACEFORGE_VERSION:?}
+    build: {context: ../ui}
+    user: "${TRACEFORGE_UID:-1000}:${TRACEFORGE_GID:-1000}"
+    mem_limit: 512m
+    read_only: true
+    tmpfs: ["/tmp:mode=1777", "/app/.next/cache:uid=${TRACEFORGE_UID:-1000},gid=${TRACEFORGE_GID:-1000}"]
+    environment:
+      <<: *environment
+      HOSTNAME: 0.0.0.0
+      PORT: "3100"
+      TRACEFORGE_PUBLIC_API_ORIGIN: http://api:3000
+      TRACEFORGE_OPERATOR_API_ORIGIN: http://api:3000
+      TRACEFORGE_INTERNAL_API_ORIGIN: http://api:3000
+      TRACEFORGE_SITE_ORIGIN: ${TRACEFORGE_SITE_ORIGIN:?}
+      TRACEFORGE_SESSION_STORE: mysql
+      TRACEFORGE_SESSION_KEY_FILE: /run/secrets/session-key
+    secrets: [db-password, session-key, proxy-key]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+  proxy:
+    <<: *runtime
+    image: caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    user: "${TRACEFORGE_UID:-1000}:${TRACEFORGE_GID:-1000}"
+    read_only: true
+    tmpfs: ["/tmp:mode=1777"]
+    mem_limit: 192m
+    entrypoint: [/bin/sh, /etc/caddy/start.sh]
+    environment:
+      TRACEFORGE_SITE_ADDRESS: ${TRACEFORGE_SITE_ADDRESS:?}
+    secrets: [proxy-key]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./proxy-start.sh:/etc/caddy/start.sh:ro
+      - ${TRACEFORGE_DATA_DIR:?}/caddy-data:/data
+      - ${TRACEFORGE_DATA_DIR:?}/caddy-config:/config
+    ports:
+      - "${TRACEFORGE_HTTP_BIND:-0.0.0.0}:${TRACEFORGE_HTTP_PORT:-80}:80"
+      - "${TRACEFORGE_HTTP_BIND:-0.0.0.0}:${TRACEFORGE_HTTPS_PORT:-443}:443"
+    depends_on:
+      ui: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:2019/config/"]
+      interval: 20s
+      timeout: 5s
+      retries: 4
+
+networks:
+  private: {}
+secrets:
+  db-password: {file: "${MYSQL_PASSWORD_FILE:?}"}
+  session-key: {file: "${TRACEFORGE_SESSION_KEY_FILE:?}"}
+  proxy-key: {file: "${TRACEFORGE_PROXY_KEY_FILE:?}"}

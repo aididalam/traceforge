@@ -1,0 +1,6 @@
+.traceforge-deploy/
+deploy/*.env
+deploy/secrets/
+deploy/data/
+deploy/backups/
+!deploy/deployment.env.example

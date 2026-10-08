@@ -1,0 +1,20 @@
+{$TRACEFORGE_SITE_ADDRESS} {
+  encode zstd gzip
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    -Server
+  }
+  handle /integration/v1/* {
+    reverse_proxy api:3000 {
+      header_up X-TraceForge-Proxy-Key {$TRACEFORGE_PROXY_KEY}
+      header_up X-TraceForge-Client-IP {remote_host}
+    }
+  }
+  handle {
+    reverse_proxy ui:3100 {
+      header_up X-TraceForge-Proxy-Key {$TRACEFORGE_PROXY_KEY}
+      header_up X-TraceForge-Client-IP {remote_host}
+    }
+  }
+}

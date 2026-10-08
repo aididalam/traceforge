@@ -51,6 +51,11 @@ jobs:
             exit 1
           fi
 
+      - name: Verify deployment configuration
+        run: |
+          node --test ops/deploy/config.test.mjs
+          bash -n ops/deploy/traceforge.sh ops/deploy/install-timers.sh ops/deploy/publish.sh
+
       - name: Verify API
         working-directory: api
         run: |

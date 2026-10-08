@@ -1,0 +1,27 @@
+services:
+  db:
+    image: mysql:8.4.11@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+    restart: unless-stopped
+    logging: {driver: json-file, options: {max-size: 10m, max-file: "3"}}
+    mem_limit: 1g
+    stop_grace_period: 90s
+    networks: [private]
+    command: ["--innodb-buffer-pool-size=256M", "--max-connections=100", "--default-time-zone=+00:00"]
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?}
+      MYSQL_USER: ${MYSQL_USER:?}
+      MYSQL_PASSWORD_FILE: /run/secrets/db-password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db-root-password
+    secrets: [db-password, db-root-password]
+    volumes: ["${TRACEFORGE_DATA_DIR:?}/mysql:/var/lib/mysql"]
+    healthcheck:
+      test: [CMD-SHELL, "MYSQL_PWD=$$(cat /run/secrets/db-root-password) mysql -h127.0.0.1 -uroot --silent --execute='SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+  indexer-migrate:
+    depends_on:
+      db: {condition: service_healthy}
+secrets:
+  db-root-password: {file: "${MYSQL_ROOT_PASSWORD_FILE:?}"}

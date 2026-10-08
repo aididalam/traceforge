@@ -1,0 +1,11 @@
+services:
+  api:
+    networks: [private, chain]
+  erp-worker:
+    networks: [private, chain]
+  indexer:
+    networks: [private, chain]
+networks:
+  chain:
+    external: true
+    name: ${TRACEFORGE_CHAIN_NETWORK:?}

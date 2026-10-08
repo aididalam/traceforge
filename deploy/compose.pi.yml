@@ -1,0 +1,23 @@
+# Bounded profile for the measured 4 GB Pi deployment. Larger workloads need a
+# larger host/profile; four colocated validators share the same failure domain.
+services:
+  db:
+    mem_limit: 640m
+    command: ["--innodb-buffer-pool-size=192M", "--max-connections=100", "--default-time-zone=+00:00"]
+  api:
+    mem_limit: 256m
+    environment: {NODE_OPTIONS: "--max-old-space-size=192"}
+  erp-worker:
+    mem_limit: 192m
+    environment: {NODE_OPTIONS: "--max-old-space-size=128"}
+  public-sync:
+    mem_limit: 128m
+    environment: {NODE_OPTIONS: "--max-old-space-size=64"}
+  indexer:
+    mem_limit: 192m
+    environment: {NODE_OPTIONS: "--max-old-space-size=128"}
+  ui:
+    mem_limit: 256m
+    environment: {NODE_OPTIONS: "--max-old-space-size=192"}
+  proxy:
+    mem_limit: 96m
