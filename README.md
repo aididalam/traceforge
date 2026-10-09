@@ -6,13 +6,13 @@ It is designed to support different companies, products, organizations, workflow
 
 ## Components
 
-| Submodule | Purpose | Repository |
-| --- | --- | --- |
-| [chain/](chain/) | Besu blockchain, validator nodes and peer connectivity | [traceforge-chain](https://github.com/aididalam/traceforge-chain) |
-| [contracts/](contracts/) | Business registration, product ownership and batch quantities | [traceforge-contracts](https://github.com/aididalam/traceforge-contracts) |
-| [indexer/](indexer/) | Blockchain events projected into MySQL for searches and history | [traceforge-indexer](https://github.com/aididalam/traceforge-indexer) |
-| [api/](api/) | Business operations, public tracking and queued ERP integration | [traceforge-api](https://github.com/aididalam/traceforge-api) |
-| [ui/](ui/) | Next.js business dashboard and public product tracking | [traceforge-ui](https://github.com/aididalam/traceforge-ui) |
+| Purpose | Repository |
+| --- | --- |
+| Besu blockchain, validator nodes and peer connectivity | [traceforge-chain](https://github.com/aididalam/traceforge-chain) |
+| Business registration, product ownership and batch quantities | [traceforge-contracts](https://github.com/aididalam/traceforge-contracts) |
+| Blockchain events projected into MySQL for searches and history | [traceforge-indexer](https://github.com/aididalam/traceforge-indexer) |
+| Business operations, public tracking and queued ERP integration | [traceforge-api](https://github.com/aididalam/traceforge-api) |
+| Next.js business dashboard and public product tracking | [traceforge-ui](https://github.com/aididalam/traceforge-ui) |
 
 The parent repository pins all five submodules in [.gitmodules](.gitmodules).
 The [API reference](api/API.md) contains endpoint methods, requests and response examples.
