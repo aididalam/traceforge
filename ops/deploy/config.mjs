@@ -20,6 +20,22 @@ export function parseEnv(text) {
 }
 
 export function validateConfig(env) {
+  env.TRACEFORGE_NETWORK_KIND ||= 'private';
+  if(!['private','public'].includes(env.TRACEFORGE_NETWORK_KIND))throw Error('Invalid TRACEFORGE_NETWORK_KIND');
+  if(env.TRACEFORGE_NETWORK_KIND==='public') {
+    if(env.TRACEFORGE_CHAIN_MODE!=='external')throw Error('Public networks use external RPC');
+    if(env.TRACEFORGE_P2P_ENABLED==='true'||env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED==='true'||env.TRACEFORGE_CHAIN_NETWORK)throw Error('Public networks do not use private validator/bootstrap settings');
+  }
+  env.TRACEFORGE_NATIVE_SYMBOL ||= 'ETH';
+  if(!/^[A-Za-z0-9]{1,12}$/.test(env.TRACEFORGE_NATIVE_SYMBOL))throw Error('Invalid TRACEFORGE_NATIVE_SYMBOL');
+  env.TRACEFORGE_FEE_MODE ||= 'auto';
+  if(!['auto','legacy','eip1559'].includes(env.TRACEFORGE_FEE_MODE))throw Error('Invalid TRACEFORGE_FEE_MODE');
+  for(const [key,fallback] of [['TRACEFORGE_MAX_FEE_GWEI','1000'],['TRACEFORGE_MAX_TRANSACTION_FEE','2']]){
+    env[key] ||= fallback;
+    if(!/^\d+(\.\d{1,9})?$/.test(env[key])||Number(env[key])<=0)throw Error('Invalid '+key);
+  }
+  env.TRACEFORGE_FEE_RETRY_SECONDS ||= '120';
+  if(!/^\d+$/.test(env.TRACEFORGE_FEE_RETRY_SECONDS)||!Number.isSafeInteger(Number(env.TRACEFORGE_FEE_RETRY_SECONDS))||Number(env.TRACEFORGE_FEE_RETRY_SECONDS)<15)throw Error('Invalid fee retry interval');
   env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED ||= 'false';
   if (!['true','false'].includes(env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED)) throw Error('Invalid network bootstrap setting');
   env.TRACEFORGE_NETWORK_BOOTSTRAP_TOKEN_FILE ||= 'secrets/network-bootstrap-token';
@@ -51,14 +67,14 @@ export function validateConfig(env) {
   if (env.TRACEFORGE_HTTP_BIND && !isIP(env.TRACEFORGE_HTTP_BIND)) throw new Error('Invalid TRACEFORGE_HTTP_BIND');
   for (const key of ['TRACEFORGE_RPC_URL', 'TRACEFORGE_SITE_ORIGIN']) {
     let url; try { url = new URL(required(key)); } catch { throw new Error(`Invalid ${key}`); }
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error(`Invalid ${key}`);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || (key==='TRACEFORGE_SITE_ORIGIN'&&url.pathname !== '/')) throw new Error(`Invalid ${key}`);
     if (key === 'TRACEFORGE_SITE_ORIGIN' && url.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw new Error('Non-local site requires HTTPS');
   }
   for (const url of (env.TRACEFORGE_RPC_FALLBACK_URLS || '').split(',').filter(Boolean)) {
     let parsed; try { parsed = new URL(url); } catch { throw new Error('Invalid TRACEFORGE_RPC_FALLBACK_URLS'); }
     if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) throw new Error('Invalid TRACEFORGE_RPC_FALLBACK_URLS');
   }
-  if (env.TRACEFORGE_CHAIN_MODE==='local') {
+  if (env.TRACEFORGE_CHAIN_MODE==='local'||env.TRACEFORGE_NETWORK_KIND==='public') {
     env.TRACEFORGE_CONTRACT_ADDRESS ||= '0x'+'0'.repeat(40);
     env.TRACEFORGE_RUNTIME_BYTECODE_HASH ||= '0x'+'0'.repeat(64);
   }

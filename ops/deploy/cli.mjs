@@ -1,5 +1,5 @@
 import {mkdir, readFile, writeFile, stat, readdir, chmod} from 'node:fs/promises';
-import {resolve, dirname} from 'node:path';
+import {resolve, dirname,basename} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -20,8 +20,9 @@ export async function deployment(options={}){
  if(process.env.TRACEFORGE_HELPER_CONTAINER==='true')env.TRACEFORGE_DOCKER_CONTEXT='default';
  if(env.TRACEFORGE_CHAIN_MODE==='local')env.TRACEFORGE_CHAIN_NETWORK ||= env.TRACEFORGE_PROJECT+'-chain';
  env.TRACEFORGE_SITE_ADDRESS=new URL(env.TRACEFORGE_SITE_ORIGIN).protocol==='http:'?'http://'+new URL(env.TRACEFORGE_SITE_ORIGIN).hostname:new URL(env.TRACEFORGE_SITE_ORIGIN).hostname;
- const rendered=resolve(dirname(path),'compose.env');
+ const rendered=resolve(dirname(path),basename(path)+'.compose.env');
  await writeFile(rendered,Object.entries(env).map(([k,v])=>`${k}='${v.replaceAll("'", "'\\''")}'`).join('\n')+'\n',{mode:0o600});
+ await chmod(rendered,0o600);
  const docker=args=>execute('docker',['--context',env.TRACEFORGE_DOCKER_CONTEXT,...args]);
  const files=['-f','deploy/compose.yml',...(env.TRACEFORGE_DATABASE_MODE==='managed'?['-f','deploy/compose.mysql.yml']:[]),...(env.TRACEFORGE_PROFILE==='pi'?['-f','deploy/compose.pi.yml']:[]),...(env.TRACEFORGE_CHAIN_NETWORK?['-f','deploy/compose.chain-network.yml']:[]),...(env.TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED==='true'?['-f','deploy/compose.network-bootstrap.yml']:[])];
  const composeArgs=['--context',env.TRACEFORGE_DOCKER_CONTEXT,'compose','--env-file',rendered,...files];
@@ -62,20 +63,30 @@ async function prepareImages(d,action){
  }else for(const component of ['ops','contract-tools','api','indexer','ui'])await d.docker(['pull',d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-'+component+':'+d.env.TRACEFORGE_VERSION]);
 }
 export async function main(){
- const command=process.argv[2]||'help';
- if(command==='help'){console.log('Commands: setup, images, init, doctor, build, pull, up, down, status, logs, check, migrate, backup, restore-check, restore, deploy, rollback\nsetup prepares images, initializes private storage/secrets and runs doctor in order.\nChain: chain-init, chain-up, contract-init, chain-check, chain-export, validator-vote, validator-status\nJoining host: node-fetch, node-init, node-up, node-check, node-info, node-status, node-down\nSet TRACEFORGE_ENV_FILE to an owner-only deployment configuration.');return;}
+ let command=process.argv[2]||'help';
+ if(command==='help'){console.log('Commands: setup, images, init, doctor, build, pull, up, down, status, logs, check, migrate, backup, restore-check, restore, deploy, rollback\nsetup prepares images, initializes private storage/secrets and runs doctor in order.\nPrivate chain: chain-init, chain-up, contract-init, chain-check, chain-export, validator-vote, validator-status\nPublic EVM: public-setup, public-wallet, public-deploy, public-up, public-check, public-down, public-status, public-wallets, public-fund\nJoining host: node-fetch, node-init, node-up, node-check, node-info, node-status, node-down\nSet TRACEFORGE_ENV_FILE to an owner-only deployment configuration. Public commands default to .traceforge-deploy/public.env.');return;}
  if(command.startsWith('node-')){const {nodeOperation}=await import('./node.mjs');await nodeOperation(command);return;}
+ const publicCommand=command.startsWith('public-');
+ if(publicCommand)process.env.TRACEFORGE_ENV_FILE ||= '.traceforge-deploy/public.env';
  const d=await deployment();
+ if(publicCommand){
+  if(d.env.TRACEFORGE_NETWORK_KIND!=='public')throw Error('Public commands require TRACEFORGE_NETWORK_KIND=public');
+  if(['public-wallet','public-deploy','public-fund','public-wallets'].includes(command)){
+   await doctor(d);const {publicOperation}=await import('./public.mjs');await publicOperation(command,d);return;
+  }
+  command=command.slice(7);
+ }
  if(command.startsWith('chain-')||command.startsWith('validator-')||command==='contract-init'){const {chainOperation}=await import('./chain.mjs');await chainOperation(command,d);return;}
  if(command==='setup'){
   await prepareImages(d,d.env.TRACEFORGE_IMAGE_MODE);
   await initialize(d.env);
   await doctor(d);
-  console.log('Setup complete. Follow the fresh-chain bootstrap or existing-chain startup steps.');return;
+  if(publicCommand){const {publicOperation}=await import('./public.mjs');await publicOperation('public-wallet',d);}
+  console.log(publicCommand?'Public setup complete. Fund the displayed wallet, then run public-deploy and public-up.':'Setup complete. Follow the fresh-chain bootstrap or existing-chain startup steps.');return;
  }
  if(command==='init'){await initialize(d.env);return;}
  if(command==='doctor'){await doctor(d);return;}
- if(['up','deploy','rollback'].includes(command)&&(/^0x0{40}$/.test(d.env.TRACEFORGE_CONTRACT_ADDRESS)||/^0x0{64}$/.test(d.env.TRACEFORGE_RUNTIME_BYTECODE_HASH)))throw Error('Contract bootstrap pending; run contract-init before application startup');
+ if(['up','deploy','rollback'].includes(command)&&(/^0x0{40}$/.test(d.env.TRACEFORGE_CONTRACT_ADDRESS)||/^0x0{64}$/.test(d.env.TRACEFORGE_RUNTIME_BYTECODE_HASH)))throw Error('Contract bootstrap pending; run '+(d.env.TRACEFORGE_NETWORK_KIND==='public'?'public-deploy':'contract-init')+' before application startup');
  if(['up','deploy','rollback','migrate'].includes(command))await doctor(d);
  if(['images','build','pull'].includes(command)){
   await prepareImages(d,command==='images'?d.env.TRACEFORGE_IMAGE_MODE:command);

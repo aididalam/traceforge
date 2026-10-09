@@ -33,7 +33,7 @@ traceforge/
 └── Makefile       Setup and deployment commands
 ```
 
-## Run with Docker
+## Installation
 
 Install Git, Make, Docker Engine and the Compose plugin on a Docker-supported
 64-bit Linux host (AMD64 or ARM64), then:
@@ -42,24 +42,24 @@ Install Git, Make, Docker Engine and the Compose plugin on a Docker-supported
 git clone --recurse-submodules https://github.com/aididalam/traceforge.git
 cd traceforge
 mkdir -m 700 .traceforge-deploy
-cp deploy/deployment.env.example .traceforge-deploy/deployment.env
-chmod 600 .traceforge-deploy/deployment.env
 ```
 
-Edit that file: choose an absolute `TRACEFORGE_DATA_DIR` owned by your deployment
-user and set `TRACEFORGE_CHAIN_DATA_DIR` to its `chain` subdirectory. Use the local
-Docker context (`default` on Linux), your domain in `TRACEFORGE_SITE_ORIGIN` or
-`http://127.0.0.1:3101`, and the matching bind address/ports. UID/GID default to
-the runner. A domain requires HTTPS; open ports 80/443 for the proxy when using
-the standard HTTPS ports. Pi deployments need working Docker memory limits.
+Both installations use an absolute `TRACEFORGE_DATA_DIR` owned by the deployment
+user, the local Docker context (`default` on Linux), and `TRACEFORGE_SITE_ORIGIN`
+for your domain or localhost. Match the bind address/ports to that origin.
+UID/GID default to the runner. Domains require HTTPS; open ports 80/443 when
+using the standard proxy ports. Host Node.js is optional: commands can run
+through the Docker helper.
 
-For the published release, use `TRACEFORGE_IMAGE_MODE=pull` and
-`TRACEFORGE_VERSION=v0.1.0`. To build from this checkout, use `build` and `local`.
-Images are published under [aididalam on Docker Hub](https://hub.docker.com/u/aididalam).
+### Private blockchain
 
-For a **new** blockchain and database:
+Create the private installation config, edit its paths/origin, and set
+`TRACEFORGE_CHAIN_DATA_DIR` to the data directory's `chain` subdirectory:
 
 ```bash
+cp deploy/deployment.env.example .traceforge-deploy/deployment.env
+chmod 600 .traceforge-deploy/deployment.env
+# Edit .traceforge-deploy/deployment.env before continuing.
 make setup
 make chain-init
 make chain-up
@@ -68,65 +68,103 @@ make up
 make check
 ```
 
-`setup` prepares images, creates private storage/secrets and checks configuration.
-Open `http://127.0.0.1:3101/operator/sign-in` to register your business; `/` provides
-public tracking. After initial setup, use `make up` to start the application.
-Domain changes require updating the configuration and running `make up`.
+This starts a new four-validator Besu chain, deploys the contract and starts the
+application/database. The default pulls published `v0.2.0` images from
+[Docker Hub](https://hub.docker.com/u/aididalam). Pi deployments require working
+Docker memory limits. Register at `http://127.0.0.1:3101/operator/sign-in`;
+`/` provides public tracking. Later startup and domain changes use `make up`.
 
-For an **existing blockchain**, start with
+For an **existing private chain**, start with
 [deployment.external.env.example](deploy/deployment.external.env.example), set
 its exact RPC, chain/contract identity and persistent paths, then run `make setup`,
 `make up` and `make check`. Keep its original genesis, validator keys and data.
 
-<details>
-<summary>Connect another node or validator</summary>
+### Public EVM network
 
-On the managed network host, configure `TRACEFORGE_P2P_ENABLED=true`,
-`TRACEFORGE_P2P_BIND` and `TRACEFORGE_P2P_ADVERTISE_HOST` with its reachable LAN/VPN
-IP. Run `make chain-up` and `make chain-export`. Allow peer TCP/UDP ports
-30303–30306 between the machines.
-
-On the joining machine, recursively clone this repository, create the private
-configuration directory above, then:
+Use a separate installation for Ethereum, Polygon or BNB Smart Chain. It runs
+the same application/database against the public network's RPC; it does not
+create validators or move products from your private chain.
+Public-chain transaction history and quantities are visible on that network;
+the publication setting controls details exposed by the TraceForge API/UI.
 
 ```bash
-cp chain/config/node.env.example .traceforge-deploy/node.env
-chmod 600 .traceforge-deploy/node.env
+cp deploy/deployment.public.env.example .traceforge-deploy/public.env
+chmod 600 .traceforge-deploy/public.env
+# Edit .traceforge-deploy/public.env before continuing.
+make public-setup
+make public-wallet
+# Send this network's native currency to the displayed deployer address.
+make public-deploy
+# If pending, repeat public-deploy until the finalized contract identity is saved.
+make public-up
+make public-check
 ```
 
-Set its own absolute data path, reachable LAN/VPN IP, matching chain ID and image
-version. Allow the joining node's TCP/UDP P2P port (default 30307) between hosts.
-Securely copy the network host's `TRACEFORGE_DATA_DIR/join-network.json`
-to `.traceforge-deploy/join-network.json`. Alternatively enable
-`TRACEFORGE_NETWORK_BOOTSTRAP_ENABLED=true` on the network host, run `make init`,
-`make chain-export` and `make up`, then give the joining operator only the separate
-bootstrap token. Configure its HTTPS `TRACEFORGE_JOIN_BUNDLE_URL` and private
-`TRACEFORGE_JOIN_TOKEN_FILE`; run `make node-fetch` before initialization.
+Set `TRACEFORGE_RPC_URL`, `TRACEFORGE_CHAIN_ID` and `TRACEFORGE_NATIVE_SYMBOL`:
+
+| Network | Mainnet ID / currency | Testnet ID / currency |
+| --- | --- | --- |
+| [Ethereum](https://ethereum.org/developers/docs/networks/) | `1` / `ETH` | Sepolia `11155111` / `ETH` |
+| [Polygon PoS](https://docs.polygon.technology/pos/reference/rpc-endpoints/) | `137` / `POL` | Amoy `80002` / `POL` |
+| [BNB Smart Chain](https://docs.bnbchain.org/bnb-smart-chain/developers/wallet-configuration/) | `56` / `BNB` | `97` / `tBNB` |
+
+The example uses Amoy and pulls the same `v0.2.0` release images as the private
+installation. Choose an RPC supporting `eth_getLogs`,
+`finalized` blocks and raw transaction submission. Provider API keys may appear
+in its URL path. Fee mode defaults to automatic; gas price and total gas fee
+caps are configurable. Transactions/indexing wait for finality, so confirmation
+can take several minutes on some networks.
+
+For an existing public deployment, fill in its contract address, deployment
+block and runtime bytecode hash, then use `public-setup`, `public-up` and
+`public-check`; skip `public-deploy`.
+
+Each business has a server-managed wallet that must also hold native currency.
+Signup displays its funding address; send funds to it directly, or use the
+deployer's balance explicitly:
 
 ```bash
-make node-init
-make node-up
-make node-check
-make node-info
+make public-wallets
+make public-fund ADDRESS=0x... AMOUNT=0.01 FUNDING_ID=business-funding-0001
 ```
 
-Retry the check while initial synchronization completes. The node generates its
-own persistent key and can follow the chain immediately after synchronization.
-To elect it as a validator, each current validator operator votes through their
-private RPC:
+Choose the amount for that network's fees. Retry pending funding with the same
+ID/address/amount; a new funding payment needs a new ID. Then submit the same
+signup details again until registration completes. Register at
+`http://127.0.0.1:3102/operator/sign-in`. No automatic mainnet funding occurs.
 
-```bash
-make validator-vote ADDRESS=0x_NEW_NODE_ADDRESS ADD=true RPC=http://validator1:8545
-make validator-status
-```
+Public commands select `.traceforge-deploy/public.env`; override it with
+`TRACEFORGE_ENV_FILE` when needed. For backups/logs, use e.g.
+`TRACEFORGE_ENV_FILE=.traceforge-deploy/public.env make backup` or `make logs`.
+Use different project names, data directories and host ports for parallel
+private/public installations. Keep deployer/business keys backed up.
 
-More than half of the current validators must vote; a four-validator network
-needs three matching votes. Confirm election in `validator-status`. Removal uses
-`ADD=false` and the same majority rule. Keep RPC private and retain node storage.
+See the [operations guide](ops/README.md) for backup/recovery, updates and
+[private nodes/validators](ops/README.md#connect-another-node-or-validator).
 
-</details>
+## ERP integration
 
-Use `make status`, `make logs`, `make check`, `make backup` and
-`make restore-check` for operations; `make help` lists commands.
-Keep deployment files, wallets and backup keys outside Git. Four validators on
-one machine share that machine's availability. See [operations](ops/README.md).
+Keep the ERP's existing inventory and payment workflow. Add TraceForge requests
+after physical receipt or a successful checkout:
+
+1. Register the business, then create a scoped ERP key with
+   `POST /operator/v1/integration-keys` on the private API using a business session.
+   Store the key in the ERP server and send it as `Authorization: Bearer <ERP key>`.
+2. Match an existing product/batch barcode through
+   `GET /integration/v1/products/search?id=...`; save the selected Tracking ID
+   and stock route. TraceForge short codes can also be scanned directly.
+3. Submit `POST /integration/v1/jobs` with an array of 1–100 `create`, `receive`
+   or `remove` operations. Checkout uses `remove` with quantity and reason `Sold`;
+   batches also identify the stock route.
+4. Save the returned job ID and poll `GET /integration/v1/jobs/{jobId}` for each
+   blockchain result. `202` means queued. Retry identical requests with the same
+   job/item idempotency keys; use new keys for new operations.
+
+Docker Compose starts the durable ERP worker automatically. See
+[ERP authentication and request/response examples](api/API.md#erp-and-pos-integration).
+
+## License
+
+TraceForge and all five component repositories are licensed under the
+[MIT License](LICENSE). Each component includes its own `LICENSE` file.
+Third-party dependencies and container base images retain their own licenses.

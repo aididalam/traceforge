@@ -2,6 +2,7 @@
 set -euo pipefail
 task_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$task_root"
+if [[ "${1:-}" == public-* ]]; then export TRACEFORGE_ENV_FILE="${TRACEFORGE_ENV_FILE:-$task_root/.traceforge-deploy/public.env}"; fi
 if command -v node >/dev/null && node -e 'process.exit(Number(process.versions.node.split(".")[0])>=22?0:1)' && [[ "${TRACEFORGE_FORCE_HELPER:-false}" != true ]]; then
   exec node ops/deploy/cli.mjs "$@"
 fi
@@ -29,7 +30,7 @@ if [[ ! -S "$task_socket" ]]; then task_socket="$HOME/.docker/run/docker.sock"; 
 task_endpoint="$(docker --context "$task_context" context inspect --format '{{.Endpoints.docker.Host}}')"
 [[ "$task_endpoint" == unix://* ]] || { echo 'Run deployment commands on the Docker host.' >&2; exit 1; }
 task_ops_image="$task_namespace/traceforge-ops:$task_version"
-if [[ "$task_mode" == build && ( "${1:-}" == setup || "${1:-}" == images || "${1:-}" == build ) ]] || ! docker --context "$task_context" image inspect "$task_ops_image" >/dev/null 2>&1; then
+if [[ "$task_mode" == build && ( "${1:-}" == setup || "${1:-}" == public-setup || "${1:-}" == images || "${1:-}" == build ) ]] || ! docker --context "$task_context" image inspect "$task_ops_image" >/dev/null 2>&1; then
   if [[ "$task_mode" == build ]]; then
     docker --context "$task_context" build -t "$task_ops_image" -f deploy/Dockerfile.ops .
   else
@@ -61,5 +62,5 @@ exec docker --context "$task_context" run --rm \
   --workdir "$task_root" \
   -e DOCKER_CONFIG=/tmp/traceforge-docker \
   -e "TRACEFORGE_ENV_FILE=$task_config" -e TRACEFORGE_HELPER_CONTAINER=true \
-  -e "VERSION=${VERSION:-}" -e "BACKUP=${BACKUP:-}" -e "ADDRESS=${ADDRESS:-}" -e "ADD=${ADD:-}" -e "RPC=${RPC:-}" -e "TRACEFORGE_SCHEMA_COMPATIBLE=${TRACEFORGE_SCHEMA_COMPATIBLE:-}" -e "TRACEFORGE_RESTORE_EMPTY=${TRACEFORGE_RESTORE_EMPTY:-}" \
+  -e "VERSION=${VERSION:-}" -e "BACKUP=${BACKUP:-}" -e "ADDRESS=${ADDRESS:-}" -e "ADD=${ADD:-}" -e "RPC=${RPC:-}" -e "AMOUNT=${AMOUNT:-}" -e "FUNDING_ID=${FUNDING_ID:-}" -e "TRACEFORGE_SCHEMA_COMPATIBLE=${TRACEFORGE_SCHEMA_COMPATIBLE:-}" -e "TRACEFORGE_RESTORE_EMPTY=${TRACEFORGE_RESTORE_EMPTY:-}" \
   "$task_namespace/traceforge-ops:$task_version" "$task_root/ops/deploy/cli.mjs" "$@"

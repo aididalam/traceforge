@@ -8,6 +8,9 @@ task_namespace="${TRACEFORGE_IMAGE_NAMESPACE:-aididalam}"
 task_context="${TRACEFORGE_DOCKER_CONTEXT:-default}"
 task_platforms="${TRACEFORGE_PLATFORMS:-linux/amd64,linux/arm64}"
 read -r -a task_components <<< "${TRACEFORGE_COMPONENTS:-api indexer ui contract-tools ops}"
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "Commit the reviewed parent and submodule changes before publishing." >&2; exit 1
+fi
 for task_component in "${task_components[@]}"; do
   [[ "$task_component" =~ ^(api|indexer|ui|contract-tools|ops)$ ]] || exit 1
   case "$task_component" in
@@ -15,13 +18,18 @@ for task_component in "${task_components[@]}"; do
     ops) task_source=.; task_file=deploy/Dockerfile.ops ;;
     *) task_source="$task_component"; task_file="$task_component/Dockerfile" ;;
   esac
+  if [[ -n "$(git -C "$task_source" status --porcelain --untracked-files=normal)" ]]; then
+    echo "Uncommitted source changes: $task_source" >&2; exit 1
+  fi
   task_image="$task_namespace/traceforge-$task_component:$task_version"
   if docker --context "$task_context" buildx imagetools inspect "$task_image" >/dev/null 2>&1; then
     echo "Release tag already exists: $task_image. Choose a new version." >&2; exit 1
   fi
   task_revision="$(git -C "$task_source" rev-parse HEAD)"
+  if [[ "$task_component" == ops ]]; then task_repository=traceforge; else task_repository="traceforge-$task_source"; fi
   docker --context "$task_context" buildx build --platform "$task_platforms" \
     --label "org.opencontainers.image.revision=$task_revision" \
-    --label "org.opencontainers.image.source=https://github.com/aididalam/traceforge" \
+    --label "org.opencontainers.image.source=https://github.com/aididalam/$task_repository" \
+    --label "org.opencontainers.image.version=$task_version" \
     --tag "$task_image" --file "$task_file" --push "$task_source"
 done
