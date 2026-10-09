@@ -1,4 +1,5 @@
 .traceforge-deploy/
+/supply_chain_test_result/
 deploy/*.env
 deploy/secrets/
 deploy/data/
