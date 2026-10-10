@@ -69,7 +69,7 @@ make check
 ```
 
 This starts a new four-validator Besu chain, deploys the contract and starts the
-application/database. The default pulls published `v0.3.0` images from
+application/database. The default pulls published `v0.3.1` images from
 [Docker Hub](https://hub.docker.com/u/aididalam). Pi deployments require working
 Docker memory limits. Register at `http://127.0.0.1:3101/operator/sign-in`;
 `/` provides public tracking. Later startup and domain changes use `make up`.
@@ -108,7 +108,7 @@ Set `TRACEFORGE_RPC_URL`, `TRACEFORGE_CHAIN_ID` and `TRACEFORGE_NATIVE_SYMBOL`:
 | [Polygon PoS](https://docs.polygon.technology/pos/reference/rpc-endpoints/) | `137` / `POL` | Amoy `80002` / `POL` |
 | [BNB Smart Chain](https://docs.bnbchain.org/bnb-smart-chain/developers/wallet-configuration/) | `56` / `BNB` | `97` / `tBNB` |
 
-The example uses Amoy and pulls the same `v0.3.0` release images as the private
+The example uses Amoy and pulls the same `v0.3.1` release images as the private
 installation. Choose an RPC supporting `eth_getLogs`,
 `finalized` blocks and raw transaction submission. Provider API keys may appear
 in its URL path. Fee mode defaults to automatic; gas price and total gas fee

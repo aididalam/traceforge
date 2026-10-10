@@ -104,7 +104,7 @@ and its history intact; do not assert schema compatibility for this upgrade.
 
 Use a new project, database, data directory and host ports. Keep the existing
 private validator network/genesis. In the new external private configuration, set
-its reachable RPC and chain ID, select `v0.3.0`, then:
+its reachable RPC and chain ID, select `v0.3.1`, then:
 
 For this **new contract**, set `TRACEFORGE_CONTRACT_ADDRESS` to `0x` followed by
 40 zeroes and `TRACEFORGE_RUNTIME_BYTECODE_HASH` to `0x` followed by 64 zeroes;
@@ -131,7 +131,8 @@ Stock, tracking codes and accounts are scoped to the new deployment. Old stock
 is not silently recreated or moved between contracts. Keep an old installation
 read-only if its history is still needed. Back up both installations before
 retiring any data. The API health check rejects the old receipt interface.
-See the [v0.3.0 change and verification record](release-v0.3.0.md).
+See the [approval verification record](release-v0.3.0.md) and
+[v0.3.1 startup correction](release-v0.3.1.md).
 
 Compose starts `erp-worker` for approvals and ERP jobs. Request/decline/cancel
 records live in MySQL; approved movements and their evidence hash are recorded on

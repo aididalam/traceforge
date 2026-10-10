@@ -90,7 +90,7 @@ export async function restoreCheck(d,folder){
   // Initializing a fresh MySQL data directory on Pi storage can exceed one
   // minute. Wait for an authenticated TCP connection within a bounded startup
   // window, rather than failing while its temporary initialization server runs.
-  let ready=false;const readyDeadline=Date.now()+180000;
+  let ready=false;const readyDeadline=Date.now()+600000;
   while(Date.now()<readyDeadline){try{await execute('docker',[...dockerPrefix,'exec',name,'sh','-c',shell+' --execute="SELECT 1"'],{capture:true});ready=true;break;}catch{await new Promise(done=>setTimeout(done,1000));}}
   if(!ready)throw Error('Restore database did not become ready');
   const child=spawn('docker',[...dockerPrefix,'exec','-i',name,'sh','-c',shell],{stdio:['pipe','ignore','ignore']});const completed=processResult(child);
@@ -128,7 +128,7 @@ async function restoreEmpty(d,folder){
   await d.compose(['up','-d','--wait','db']);
   const child=spawn('docker',[...d.composeArgs,'exec','-T','db','sh','-c','export MYSQL_PWD="$(cat /run/secrets/db-root-password)"; exec mysql -h127.0.0.1 -uroot'],{stdio:['pipe','ignore','ignore']});
   await Promise.all([pipeline(createReadStream(resolve(work,'database.sql')),child.stdin),processResult(child)]);
-  await d.compose(['up','-d','--wait','--wait-timeout','300']);
+  await d.compose(['up','-d','--wait','--wait-timeout','600']);
   console.log('Application database, wallet keys and configuration restored into empty storage; existing chain retained.');
  }finally{await rm(work,{recursive:true,force:true});}
 }
@@ -140,7 +140,7 @@ export async function operations(command,d){
   const version=process.env.VERSION;if(!version)throw Error('Set VERSION to the new published release');
   await backup(d);const target=await deployment({version});await target.compose(['pull','api','indexer','ui']);
   await target.compose(['stop',...roles]);
-  await target.compose(['up','-d','--wait','--wait-timeout','300']);
+  await target.compose(['up','-d','--wait','--wait-timeout','600']);
   await writeFile(d.path,(await readFile(d.path,'utf8')).replace(/^TRACEFORGE_VERSION=.*$/m,'TRACEFORGE_VERSION='+version),{mode:0o600});
  }else if(command==='rollback'){
   if(process.env.TRACEFORGE_SCHEMA_COMPATIBLE!=='true')throw Error('Rollback requires verified schema compatibility');

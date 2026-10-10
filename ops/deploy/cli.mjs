@@ -91,12 +91,12 @@ export async function main(){
  if(['images','build','pull'].includes(command)){
   await prepareImages(d,command==='images'?d.env.TRACEFORGE_IMAGE_MODE:command);
  }
- else if(command==='up')await d.compose(['up','-d','--wait','--wait-timeout','300']);
+ else if(command==='up')await d.compose(['up','-d','--wait','--wait-timeout','600']);
  else if(command==='down')await d.compose(['down']);
  else if(command==='status')await d.compose(['ps','-a']);
  else if(command==='logs')await d.compose(['logs','--tail','80',...(process.argv[3]?[process.argv[3]]:[])]);
  else if(command==='migrate'){
-  if(d.env.TRACEFORGE_DATABASE_MODE==='managed')await d.compose(['up','-d','--wait','db']);
+  if(d.env.TRACEFORGE_DATABASE_MODE==='managed')await d.compose(['up','-d','--wait','--wait-timeout','600','db']);
   await d.compose(['run','--rm','indexer-migrate']);await d.compose(['run','--rm','api-migrate']);
  }else if(command==='check'){
   const rows=(await d.compose(['ps','--format','json'],{capture:true})).split('\n').filter(Boolean).flatMap(line=>JSON.parse(line));

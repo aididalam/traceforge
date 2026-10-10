@@ -19,7 +19,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
-      start_period: 30s
+      # Fresh MySQL initialization on Pi storage can exceed five minutes.
+      # A successful probe still marks the database healthy immediately.
+      start_period: 5m
   indexer-migrate:
     depends_on:
       db: {condition: service_healthy}
