@@ -44,12 +44,13 @@ export async function chainOperation(command,d){
  if(command==='validator-vote'||command==='validator-status')return validatorOperation(command,d);
  if(command==='chain-export')return exportNetwork(d);
  if(command==='chain-check'){const result=await check(d);console.log(result);return JSON.parse(result);}
- if(d.env.TRACEFORGE_CHAIN_MODE!=='local')throw Error('External validators use their own lifecycle; use their chain Compose project');
+ if(d.env.TRACEFORGE_CHAIN_MODE!=='local'&&command!=='contract-init')throw Error('External validators use their own lifecycle; use their chain Compose project');
  if(command==='chain-init'){await initialize(d);return;}
  if(command==='chain-up'){await refreshBootnodes(d);await start(d);await wait(d);return;}
  if(command==='contract-init'){
-  await wait(d);
-  await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'run','--rm','--user',d.env.TRACEFORGE_UID+':'+d.env.TRACEFORGE_GID,'--network',d.env.TRACEFORGE_CHAIN_NETWORK,'--mount',`type=bind,source=${d.env.TRACEFORGE_DATA_DIR},target=/data`,'-e','TRACEFORGE_CHAIN_ID='+d.env.TRACEFORGE_CHAIN_ID,'-e','TRACEFORGE_RPC_URL='+d.env.TRACEFORGE_RPC_URL,d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-contract-tools:'+d.env.TRACEFORGE_VERSION],{capture:true});
+  const network=d.env.TRACEFORGE_CHAIN_NETWORK||'bridge';
+  await wait({...d,env:{...d.env,TRACEFORGE_CHAIN_NETWORK:network}});
+  await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'run','--rm','--user',d.env.TRACEFORGE_UID+':'+d.env.TRACEFORGE_GID,'--network',network,'--add-host','host.docker.internal:host-gateway','--mount',`type=bind,source=${d.env.TRACEFORGE_DATA_DIR},target=/data`,'-e','TRACEFORGE_CHAIN_ID='+d.env.TRACEFORGE_CHAIN_ID,'-e','TRACEFORGE_RPC_URL='+d.env.TRACEFORGE_RPC_URL,d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-contract-tools:'+d.env.TRACEFORGE_VERSION],{capture:true});
   const record=JSON.parse(await readFile(resolve(d.env.TRACEFORGE_DATA_DIR,'contract-deployment.json'),'utf8'));
   let text=await readFile(d.path,'utf8');for(const [key,value]of Object.entries({TRACEFORGE_CONTRACT_ADDRESS:record.address,TRACEFORGE_DEPLOYMENT_BLOCK:record.deploymentBlock,TRACEFORGE_RUNTIME_BYTECODE_HASH:record.runtimeHash}))text=text.replace(new RegExp('^'+key+'=.*$','m'),key+'='+value);
   await writeFile(d.path,text,{mode:0o600});console.log('Contract identity recorded in deployment configuration.');return;

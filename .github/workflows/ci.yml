@@ -71,6 +71,7 @@ jobs:
           npm run verify:operator-dashboard
           npm run verify:product-input
           npm run test:erp-input
+          npm run test:receipt-input
           npm run test:network-bootstrap
           node --test scripts/test-deployment.mjs
           npm run test:transaction-policy
@@ -110,6 +111,7 @@ jobs:
           python3 ../ops/refresh-contract-abi.py --check
           npm test
           npm run test:public
+          npm run test:bootstrap
           npm audit --omit=dev --audit-level=high
 
       - name: Verify assembled single and batch integration in real browsers
@@ -130,4 +132,4 @@ jobs:
             sleep 1
           done
           cd api
-          npm run test:direct-claim
+          npm run test:receipt-approval

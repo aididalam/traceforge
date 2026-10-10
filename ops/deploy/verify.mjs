@@ -1,4 +1,5 @@
-// Mutating deployment acceptance runs only against a dedicated local test stack.
+// Mutating acceptance uses a dedicated test project and its own contract.
+// Existing validators may be reused only with an explicitly pinned test contract.
 // Credentials remain in memory; output contains only verification results.
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
@@ -8,7 +9,15 @@ import {deployment,execute} from './cli.mjs';
 const d=await deployment();
 assert.equal(process.env.TRACEFORGE_ACCEPTANCE,'true','Explicit test opt-in required');
 assert.ok(d.env.TRACEFORGE_PROJECT.endsWith('-test'),'Dedicated test project required');
-assert.equal(d.env.TRACEFORGE_CHAIN_MODE,'local','Never run acceptance writes on the existing Pi chain');
+if(d.env.TRACEFORGE_CHAIN_MODE==='external') {
+ assert.equal(d.env.TRACEFORGE_NETWORK_KIND,'private','Acceptance must not spend public-network gas');
+ assert.equal(process.env.TRACEFORGE_ACCEPTANCE_EXTERNAL_CONTRACT?.toLowerCase(),d.env.TRACEFORGE_CONTRACT_ADDRESS.toLowerCase(),'Explicit dedicated external test contract required');
+ const code="const fs=require('fs');console.log(fs.readFileSync('/data/contract-deployment.json','utf8'));";
+ const record=JSON.parse(await execute('docker',['--context',d.env.TRACEFORGE_DOCKER_CONTEXT,'run','--rm','--mount',`type=bind,source=${d.env.TRACEFORGE_DATA_DIR},target=/data,readonly`,d.env.TRACEFORGE_IMAGE_NAMESPACE+'/traceforge-api:'+d.env.TRACEFORGE_VERSION,'node','-e',code],{capture:true}));
+ assert.equal(record.address.toLowerCase(),d.env.TRACEFORGE_CONTRACT_ADDRESS.toLowerCase());
+ assert.equal(String(record.chainId),d.env.TRACEFORGE_CHAIN_ID);
+ assert.equal(record.runtimeHash.toLowerCase(),d.env.TRACEFORGE_RUNTIME_BYTECODE_HASH.toLowerCase());
+}else assert.equal(d.env.TRACEFORGE_CHAIN_MODE,'local');
 const base=d.env.TRACEFORGE_SITE_ORIGIN;
 assert.ok(['127.0.0.1','localhost'].includes(new URL(base).hostname));
 const id=randomUUID(),credentials={email:`deployment-${id}@traceforge.test`,password:randomUUID()+'Aa!'};
@@ -48,10 +57,18 @@ const batch=await write('/operator/api/products/create',{name:'Deployment test b
 const single=await write('/operator/api/products/create',{name:'Deployment test item',id:'ITEM-'+id,publish:true,idempotencyKey:randomUUID()},producer.cookie);
 const preview=await until(async()=>{const result=await request('/operator/api/receive/'+batch.shortCode,undefined,shop.cookie);assert.equal(result.status,200);assert.equal(result.body.quantity.availableQuantity,'100');return result.body;});
 const source=preview.routes[0];
-const receipt=await write('/operator/api/products/'+batch.trackingId+'/receive',{sourceRouteId:source.id,quantity:20,version:source.version,confirmed:true,idempotencyKey:randomUUID()},shop.cookie);
+async function approvedReceipt(product,input){
+ const requested=await request('/operator/api/products/'+product.trackingId+'/receive',input,shop.cookie);
+ assert.equal(requested.status,202);assert.equal(requested.body.status,'WAITING_APPROVAL');assert.equal(requested.body.transactionHash,null);
+ const decision=await request('/operator/api/receipt-requests/decisions',{requestIds:[requested.body.receiptRequestId],action:'approve',idempotencyKey:randomUUID()},producer.cookie);
+ assert.equal(decision.status,202);assert.equal(decision.body.results[0].ok,true);
+ await until(async()=>{const page=await request('/operator/api/receipt-requests?direction=outgoing',undefined,shop.cookie);assert.equal(page.body.requests.find(r=>r.id===requested.body.receiptRequestId)?.status,'CONFIRMED');});
+ return requested.body;
+}
+const receipt=await approvedReceipt(batch,{sourceRouteId:source.id,quantity:20,version:source.version,confirmed:true,idempotencyKey:randomUUID()});
 const singlePreview=await until(async()=>{const r=await request('/operator/api/receive/'+single.shortCode,undefined,shop.cookie);assert.equal(r.status,200);return r.body;});
-await write('/operator/api/products/'+single.trackingId+'/receive',{version:singlePreview.version,confirmed:true,idempotencyKey:randomUUID()},shop.cookie);
-console.log('Independent signup, dynamic metadata and single/batch physical receipts verified.');
+await approvedReceipt(single,{version:singlePreview.version,confirmed:true,idempotencyKey:randomUUID()});
+console.log('Independent signup, dynamic metadata and owner-approved single/batch receipts verified.');
 
 await d.compose(['restart','ui']);
 await until(async()=>assert.equal((await request('/operator/api/me',undefined,shop.cookie)).status,200));
@@ -60,9 +77,11 @@ const browser=await import('../../ui/node_modules/@playwright/test/index.mjs');
 const chromium=await browser.chromium.launch({headless:true});
 try{
  const page=await chromium.newPage();
+ page.setDefaultTimeout(45000);
  const [cookieName,cookieValue]=producer.cookie.split('=');
  await page.context().addCookies([{name:cookieName,value:cookieValue,url:base,httpOnly:true,sameSite:'Strict'}]);
  await page.goto(base+'/operator/products/'+batch.trackingId);
+ console.log('Docker browser product opened.');
  await page.getByRole('heading',{name:'Product QR code'}).waitFor();
  await until(async()=>assert.equal(await page.getByRole('link',{name:'Open tracking link'}).getAttribute('href'),base+'/track/'+batch.trackingId));
  assert.equal((await page.request.get(base+'/favicon.svg')).status(),200);

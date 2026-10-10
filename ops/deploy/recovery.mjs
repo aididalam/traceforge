@@ -87,7 +87,11 @@ export async function restoreCheck(d,folder){
   await authenticatedFile(resolve(folder,'files.tfg'),key,resolve(work,'files.tar.gz'));
   await execute('docker',[...dockerPrefix,'run','-d','--name',name,'--network','none','--memory','512m','--mount',`type=bind,source=${passwordFile},target=/run/password,readonly`,'--mount',`type=volume,source=${volume},target=/var/lib/mysql`,'-e','MYSQL_ROOT_PASSWORD_FILE=/run/password',mysqlImage,'--innodb-buffer-pool-size=128M','--max-connections=20'],{capture:true});
   const shell='export MYSQL_PWD="$(cat /run/password)"; exec mysql -h127.0.0.1 -uroot --batch --skip-column-names';
-  let ready=false;for(let i=0;i<60;i++){try{await execute('docker',[...dockerPrefix,'exec',name,'sh','-c',shell+' --execute="SELECT 1"'],{capture:true});ready=true;break;}catch{await new Promise(done=>setTimeout(done,1000));}}
+  // Initializing a fresh MySQL data directory on Pi storage can exceed one
+  // minute. Wait for an authenticated TCP connection within a bounded startup
+  // window, rather than failing while its temporary initialization server runs.
+  let ready=false;const readyDeadline=Date.now()+180000;
+  while(Date.now()<readyDeadline){try{await execute('docker',[...dockerPrefix,'exec',name,'sh','-c',shell+' --execute="SELECT 1"'],{capture:true});ready=true;break;}catch{await new Promise(done=>setTimeout(done,1000));}}
   if(!ready)throw Error('Restore database did not become ready');
   const child=spawn('docker',[...dockerPrefix,'exec','-i',name,'sh','-c',shell],{stdio:['pipe','ignore','ignore']});const completed=processResult(child);
   await Promise.all([pipeline(createReadStream(resolve(work,'database.sql')),child.stdin),completed]);

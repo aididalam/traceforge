@@ -96,6 +96,73 @@ Database changes requiring a separate migration plan must be handled before
 using this compatibility assertion. Existing validator data and contract
 identity are retained across application updates.
 
+## Upgrade to owner-approved receipts
+
+Release `v0.3.0` requires the new `approveReceipt` contract. Application migrations
+alone cannot add consent to a deployed v0.2 contract. Keep the existing deployment
+and its history intact; do not assert schema compatibility for this upgrade.
+
+Use a new project, database, data directory and host ports. Keep the existing
+private validator network/genesis. In the new external private configuration, set
+its reachable RPC and chain ID, select `v0.3.0`, then:
+
+For this **new contract**, set `TRACEFORGE_CONTRACT_ADDRESS` to `0x` followed by
+40 zeroes and `TRACEFORGE_RUNTIME_BYTECODE_HASH` to `0x` followed by 64 zeroes;
+keep `TRACEFORGE_DEPLOYMENT_BLOCK=0`. These placeholders prevent application
+startup until `contract-init` records the deployed identity. Existing-contract
+installations instead require their real address, block and runtime hash.
+
+```bash
+make setup
+make contract-init
+make up
+make check
+```
+
+`contract-init` deploys a new contract on the existing zero-gas private chain.
+Use a Docker-reachable RPC; `TRACEFORGE_CHAIN_NETWORK` can identify its existing
+Docker network. An old `contract-deployment.json` is deliberately rejected if its
+code differs, so use new storage instead of replacing old deployment records.
+On public EVM use a separate public configuration, fund the deployer and run
+`make public-setup`, `make public-deploy`, `make public-up`, `make public-check`.
+Business wallets also need native gas funds on public networks.
+
+Stock, tracking codes and accounts are scoped to the new deployment. Old stock
+is not silently recreated or moved between contracts. Keep an old installation
+read-only if its history is still needed. Back up both installations before
+retiring any data. The API health check rejects the old receipt interface.
+See the [v0.3.0 change and verification record](release-v0.3.0.md).
+
+Compose starts `erp-worker` for approvals and ERP jobs. Request/decline/cancel
+records live in MySQL; approved movements and their evidence hash are recorded on
+chain. Backups must include the database and signing wallets. Pending requests
+expire after 72 hours; an approved request is handled asynchronously, with each
+result visible in the dashboard and originating ERP job. No stock is reserved
+until approval; approved but unconfirmed requests count against source capacity
+in API approval decisions, and the contract checks the final available quantity.
+
+For development, after installing component dependencies:
+
+```bash
+make test-approval
+# Supply isolated MySQL credentials and a local private RPC for assembled tests.
+make test-integration
+```
+
+`TRACEFORGE_TEST_RPC_URL` selects a loopback private Besu RPC; each integration
+run deploys its own contract and creates/drops a separate test database. The
+browser suite can be included with `TRACEFORGE_TEST_UI=true`. It records real
+request, approval, transfer and removal transactions; no production API test
+switches are introduced.
+
+`TRACEFORGE_ACCEPTANCE=true node ops/deploy/verify.mjs` exercises a dedicated
+Docker project ending in `-test`, including sessions, QR URLs, ERP restart
+recovery and runtime domain changes. On existing private validators, additionally
+set `TRACEFORGE_ACCEPTANCE_EXTERNAL_CONTRACT` to the **new dedicated test contract**
+created by that project's `contract-init`. Its persisted deployment record must
+match. This command creates test businesses and stock; keep it separate from
+production contracts and require installed UI browser test dependencies.
+
 ## Linux timers
 
 ```bash
@@ -171,4 +238,4 @@ The manual GitHub workflow uses the repository's `DOCKERHUB_TOKEN` secret.
 `verify.mjs`, `verify-failures.mjs`, `verify-node-election.mjs` and
 `verify-network-bootstrap.mjs` are acceptance tools for explicitly selected
 isolated test deployments. ERP authentication and request examples are in the
-[API reference](../api/API.md#erp-and-pos-integration).
+[API reference](https://github.com/aididalam/traceforge-api/blob/main/API.md#erp-and-pos-integration).

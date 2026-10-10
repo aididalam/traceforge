@@ -15,7 +15,7 @@ It is designed to support different companies, products, organizations, workflow
 | Next.js business dashboard and public product tracking | [traceforge-ui](https://github.com/aididalam/traceforge-ui) |
 
 The parent repository pins all five submodules in [.gitmodules](.gitmodules).
-The [API reference](api/API.md) contains endpoint methods, requests and response examples.
+The [API reference](https://github.com/aididalam/traceforge-api/blob/main/API.md) contains endpoint methods, requests and response examples.
 
 ## Repository Structure
 
@@ -69,7 +69,7 @@ make check
 ```
 
 This starts a new four-validator Besu chain, deploys the contract and starts the
-application/database. The default pulls published `v0.2.0` images from
+application/database. The default pulls published `v0.3.0` images from
 [Docker Hub](https://hub.docker.com/u/aididalam). Pi deployments require working
 Docker memory limits. Register at `http://127.0.0.1:3101/operator/sign-in`;
 `/` provides public tracking. Later startup and domain changes use `make up`.
@@ -108,7 +108,7 @@ Set `TRACEFORGE_RPC_URL`, `TRACEFORGE_CHAIN_ID` and `TRACEFORGE_NATIVE_SYMBOL`:
 | [Polygon PoS](https://docs.polygon.technology/pos/reference/rpc-endpoints/) | `137` / `POL` | Amoy `80002` / `POL` |
 | [BNB Smart Chain](https://docs.bnbchain.org/bnb-smart-chain/developers/wallet-configuration/) | `56` / `BNB` | `97` / `tBNB` |
 
-The example uses Amoy and pulls the same `v0.2.0` release images as the private
+The example uses Amoy and pulls the same `v0.3.0` release images as the private
 installation. Choose an RPC supporting `eth_getLogs`,
 `finalized` blocks and raw transaction submission. Provider API keys may appear
 in its URL path. Fee mode defaults to automatic; gas price and total gas fee
@@ -142,29 +142,41 @@ private/public installations. Keep deployer/business keys backed up.
 See the [operations guide](ops/README.md) for backup/recovery, updates and
 [private nodes/validators](ops/README.md#connect-another-node-or-validator).
 
+## Product receipt approval
+
+Scan a product, select its current holder and quantity, then send a receipt
+request. The holder sees the requesting business's Organization ID and wallet
+address in **Receipt requests**, and can approve or decline up to 100 requests
+at once. Receivers can also build a request list of up to 100 products.
+
+Requests expire after 72 hours. Pending requests do not change ownership or
+reserve stock. Approval queues an owner-signed blockchain transfer; stock appears
+in the receiver's inventory after confirmation. Available quantities are checked
+again when approving and when executing each transfer. Bulk results are per item.
+Only the current holder can remove its stock from the supply chain.
+
 ## ERP integration
 
-Keep the ERP's existing inventory and payment workflow. Add TraceForge requests
-after physical receipt or a successful checkout:
+Keep the ERP's inventory and payment workflow. Register the business and create a
+scoped key with `POST /operator/v1/integration-keys`; keep that key on the ERP
+server and send it as `Authorization: Bearer <ERP key>`.
 
-1. Register the business, then create a scoped ERP key with
-   `POST /operator/v1/integration-keys` on the private API using a business session.
-   Store the key in the ERP server and send it as `Authorization: Bearer <ERP key>`.
-2. Match an existing product/batch barcode through
-   `GET /integration/v1/products/search?id=...`; save the selected Tracking ID
-   and stock route. TraceForge short codes can also be scanned directly.
-3. Submit `POST /integration/v1/jobs` with an array of 1–100 `create`, `receive`
-   or `remove` operations. Checkout uses `remove` with quantity and reason `Sold`;
-   batches also identify the stock route.
-4. Save the returned job ID and poll `GET /integration/v1/jobs/{jobId}` for each
-   blockchain result. `202` means queued. Retry identical requests with the same
-   job/item idempotency keys; use new keys for new operations.
+1. Find an existing barcode with `GET /integration/v1/products/search?id=...`,
+   or scan a TraceForge short code. Select the product and source stock route.
+2. Submit 1–100 `create`, `receive` or `remove` operations to
+   `POST /integration/v1/jobs`. Receipt produces `WAITING_APPROVAL`, without
+   changing stock. Checkout uses `remove` with quantity and reason `Sold`.
+3. The current holder lists `GET /integration/v1/receipt-requests?direction=incoming`
+   and sends request IDs to `POST /integration/v1/receipt-requests/decisions` with
+   `action: "approve"` or `"decline"`. Approval requires `products:approve`.
+4. Poll `GET /integration/v1/jobs/{jobId}` for confirmed results. Pending approval
+   does not block later ERP jobs. Retry identical requests with the same keys.
 
-Docker Compose starts the durable ERP worker automatically. See
-[ERP authentication and request/response examples](api/API.md#erp-and-pos-integration).
+Docker Compose runs the approval/ERP worker automatically. See
+[request and response examples](https://github.com/aididalam/traceforge-api/blob/main/API.md#erp-and-pos-integration) and the
+[contract upgrade instructions](ops/README.md#upgrade-to-owner-approved-receipts).
 
 ## License
 
-TraceForge and all five component repositories are licensed under the
-[MIT License](LICENSE). Each component includes its own `LICENSE` file.
-Third-party dependencies and container base images retain their own licenses.
+Licensed under the [MIT License](LICENSE). Component repositories use the same
+license; dependencies retain their own licenses.
